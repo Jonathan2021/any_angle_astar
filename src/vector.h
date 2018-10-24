@@ -2,7 +2,7 @@
 # define VECTOR_H
 
 # include <stddef.h>
-
+#include "control.h"
 struct vector
 {
     // The number of elements in the vector
@@ -10,7 +10,7 @@ struct vector
     // The maximum number of elements in the vector
     size_t capacity;
     // The elements themselves
-    int *data;
+    struct vector2 *data;
 };
 
 /*
@@ -35,7 +35,7 @@ struct vector *vector_resize(struct vector *v, size_t n);
 ** Append an element to the end of the vector. Expand the vector if needed.
 ** Returns `NULL` if an error occured.
 */
-struct vector *vector_append(struct vector *v, int elt);
+struct vector *vector_append(struct vector *v, struct vector2 elt);
 
 /*
 ** Display the vector contents on `stdout`.
@@ -53,7 +53,7 @@ struct vector *vector_reset(struct vector *v, size_t n);
 ** Insert `n` at the index `i`. Expand the vector if needed.
 ** Returns `NULL` if an error occured.
 */
-struct vector *vector_insert(struct vector *v, size_t i, int elt);
+struct vector *vector_insert(struct vector *v, size_t i, struct vector2 elt);
 
 /*
 ** Remove the element at the index `i`.
