@@ -1,10 +1,9 @@
-#include "control.h"
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
 #include <stdio.h>
 #include "vector.h"
-
+#include "control.h"
 
 static struct vector *list_cp;
 
@@ -44,10 +43,10 @@ struct vector *create_checkpoint(struct car *car)
 
     struct vector2 *cp4 = get_arrival(car);
 
-    vector_append(list_cp,*cp1);
-    vector_append(list_cp,*cp2);
-    vector_append(list_cp,*cp3);
-    vector_append(list_cp,*cp4);
+    list_cp = vector_append(list_cp,*cp1);
+    list_cp = vector_append(list_cp,*cp2);
+    list_cp = vector_append(list_cp,*cp3);
+    list_cp = vector_append(list_cp,*cp4);
 
     return list_cp;
 }
