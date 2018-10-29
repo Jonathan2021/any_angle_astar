@@ -38,7 +38,7 @@ struct vector2 *get_angle(struct car *car)
 
     struct vector2 *angle = vector2_new();
     angle->x = sin;
-    angle->y = -cos;
+    angle->y = cos;
     return angle;
 }
 
