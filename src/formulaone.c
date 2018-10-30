@@ -97,7 +97,7 @@ enum move action (struct car *car)
     printf("determinant = %f\n", determinant);
     if (car->speed.x > 0.4f || car->speed.y > 0.4f)
         return BRAKE;
-    if (car->direction.x > (angle->x -0.02f) 
+    if (car->direction.x > (angle->x - 0.02f) 
             && car->direction.x < (angle->x + 0.02f) 
             && car->direction.y > (angle->y - 0.02f) 
             && car->direction.y < (angle->y + 0.02f))
