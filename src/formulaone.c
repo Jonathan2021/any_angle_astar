@@ -3,9 +3,9 @@
 #include <math.h>
 #include <stdio.h>
 #include "vector.h"
-#include "control.h"
+#include "list_cp.h"
 
-static struct vector *list_cp;
+static struct list_cp *list_cp;
 
 struct vector2 *get_arrival(struct car *car)
 {
@@ -25,28 +25,28 @@ struct vector2 *get_arrival(struct car *car)
 }
 
 
-struct vector *create_checkpoint(struct car *car)
+struct list_cp *create_checkpoint(struct car *car)
 {
-    struct vector *list_cp = vector_init(4);
+    struct list_cp *list_cp = list_cp_init();
 
-    struct vector2 *cp1 = vector2_new();
+    /*struct vector2 *cp1 = vector2_new();
     cp1->x = 10;
     cp1->y = 10;
 
     struct vector2 *cp2 = vector2_new();
-    cp1->x = 20;
-    cp1->y = 20;
+    cp2->x = 20;
+    cp2->y = 20;
 
     struct vector2 *cp3 = vector2_new();
-    cp1->x = 30;
-    cp1->y = 30;
-
+    cp3->x = 30;
+    cp3->y = 30;
+*/
     struct vector2 *cp4 = get_arrival(car);
 
-    list_cp = vector_append(list_cp,*cp1);
-    list_cp = vector_append(list_cp,*cp2);
-    list_cp = vector_append(list_cp,*cp3);
-    list_cp = vector_append(list_cp,*cp4);
+    //list_cp = list_cp_append(list_cp,cp1);
+    //list_cp = list_cp_append(list_cp,cp2);
+    //list_cp = list_cp_append(list_cp,cp3);
+    list_cp = list_cp_append(list_cp,cp4);
 
     return list_cp;
 }
@@ -76,7 +76,7 @@ struct vector2 *get_angle(struct car *car, struct vector2 *cp)
 
     struct vector2 *angle = vector2_new();
     angle->x = sin;
-    if (determinant < 0)
+    if (determinant <= 0)
         angle->y = -cos;
     else
         angle->y = cos;
@@ -88,12 +88,12 @@ enum move action (struct car *car)
 {
     if (list_cp == NULL)
         list_cp = create_checkpoint(car);
-
-    struct vector2 *check_point = list_cp->data;
-    vector_remove(list_cp, 0);
-    struct vector2 *angle = get_angle(car, check_point);
-    double determinant = check_point->x*car->direction.y - 
-        car->direction.x*check_point->y;
+    printf("x = %f", list_cp->cp->x);
+    printf("y = %f", list_cp->cp->y);
+    struct vector2 *checkpoint = list_cp->cp;
+    struct vector2 *angle = get_angle(car, checkpoint);
+    double determinant = checkpoint->x*car->direction.y - 
+        car->direction.x*checkpoint->y;
     printf("determinant = %f\n", determinant);
     if (car->speed.x > 0.4f || car->speed.y > 0.4f)
         return BRAKE;
@@ -102,37 +102,7 @@ enum move action (struct car *car)
             && car->direction.y > (angle->y - 0.02f) 
             && car->direction.y < (angle->y + 0.02f))
         return ACCELERATE;
-    /*
-       if (angle->x > 0 && angle->y > 0)
-       {
-       if (car->direction.x < angle->x && car->direction.y > angle->y)
-       return BRAKE_AND_TURN_RIGHT;
-       else
-       return BRAKE_AND_TURN_LEFT;
-       }
-       if (angle->x > 0 && angle->y < 0)
-       {
-       if (car->direction.x > angle->x && car->direction.y > angle->y)
-       return BRAKE_AND_TURN_RIGHT;
-       else
-       return BRAKE_AND_TURN_LEFT;
-       }
-       if (angle->x < 0 && angle->y < 0)
-       {
-       if (car->direction.x > angle->x && car->direction.y < angle->y)
-       return BRAKE_AND_TURN_RIGHT;
-       else
-       return BRAKE_AND_TURN_LEFT;
-       }
-       if (angle->x < 0 && angle->y > 0)
-       {
-       if (car->direction.x < angle->x && car->direction.y < angle->y)
-       return BRAKE_AND_TURN_RIGHT;
-       else
-       return BRAKE_AND_TURN_LEFT;
-       }
-       */
-    if (determinant < 0)
+    if (determinant <= 0)
         return TURN_RIGHT;
     else
         return TURN_LEFT;
@@ -140,11 +110,5 @@ enum move action (struct car *car)
 enum move update(struct car *car)
 {
     car = car;
-    /*
-    struct vector2 *angle = get_angle(car);	
-    printf("angle x = %f || car x = %f \n", angle->x, car->direction.x);
-    printf("angle y = %f || car y = %f\n", angle->y, car->direction.y);
-    printf("speed x = %f || speed y = %f\n", car->speed.x, car->speed.y);
-    */
     return action(car);
 }

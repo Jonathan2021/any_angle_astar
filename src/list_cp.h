@@ -9,7 +9,10 @@ struct list_cp
     struct list_cp *next;
 };
 
-struct list_cp *list_append(struct list_cp *l, struct list_cp elt);
-struct list_cp *list_remove(struct list_cp *l, size_t i);
+struct list_cp *list_cp_init(void);
+struct list_cp *list_cp_append(struct list_cp *list_cp,
+     struct vector2 *element);
+struct list_cp *list_cp_pop(struct list_cp *list_cp);
+void list_cp_destroy(struct list_cp *list_cp);
 
 #endif
