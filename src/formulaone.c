@@ -20,7 +20,25 @@ struct vector2 *normalize_vec(struct vector2 vec)
     res->y = (vec.y)/div;
     return res;
 }
-  
+
+struct vector2 *normalize_vec2(struct vector2 *vec)
+{
+    struct vector2 *res = vector2_new();
+    double div = (sqrt(square(vec->x) + square(vec->y)));
+    if (div == 0)
+	div = 1;
+    res->x = (vec->x)/div;
+    res->y = (vec->y)/div;
+    return res;
+}
+struct vector2 *create_vector(struct vector2 p1, struct vector2 *p2)
+{
+    struct vector2 *res = vector2_new();
+    res->x = p2->x - p1.x;
+    res->y = p2->y - p1.y;
+    return res;
+}
+
 struct vector2 *get_arrival(struct car *car)
 {
     struct vector2 *arrival = vector2_new();
@@ -83,17 +101,11 @@ struct vector2 *get_angle(struct car *car, struct vector2 *cp)
             + pow((check_point->y - car->position.y),2));
 
     float cos = adjacent/hypotenus;
-    float sin = oppose/hypotenus;
-    struct vector2 *norm_direction = normalize_vec(car->direction);
-    double determinant = check_point->x*norm_direction->x 
-        - norm_direction->x*check_point->y;
+    float sin = oppose/hypotenus; 
 
     struct vector2 *angle = vector2_new();
     angle->x = sin;
-    if (determinant <= 0)
-        angle->y = -cos;
-    else
-        angle->y = -cos;
+    angle->y = -cos;
 
     return angle;
 }
@@ -106,25 +118,35 @@ enum move action (struct car *car)
     struct vector2 *checkpoint = list_cp->cp;
     struct vector2 *angle = get_angle(car, checkpoint);
 
-    struct vector2 *norm_direction = normalize_vec(car->direction);
-    double determinant = checkpoint->x*norm_direction->x 
-        - norm_direction->x*checkpoint->y;
+    struct vector2 *car_direction = normalize_vec(car->direction);
+    struct vector2 *path = normalize_vec2(create_vector(car->position,checkpoint));
+    double determinant = path->x*car_direction->y 
+        - car_direction->x*path->y;
 
     printf("determinant = %f\n", determinant);
     if (car->speed.x > 0.4f || car->speed.y > 0.4f)
         return BRAKE;
-    if (car->direction.x > (angle->x - 0.02f) 
-            && car->direction.x < (angle->x + 0.02f) 
-            && car->direction.y > (angle->y - 0.02f) 
-            && car->direction.y < (angle->y + 0.02f))
+    if (car->direction.x > (angle->x - 0.025f) 
+            && car->direction.x < (angle->x + 0.025f) 
+            && car->direction.y > (angle->y - 0.025f) 
+            && car->direction.y < (angle->y + 0.025f))
         return ACCELERATE;
+    
+    if (car->direction.x > (angle->x - 0.3f) 
+            && car->direction.x < (angle->x + 0.3f) 
+            && car->direction.y > (angle->y - 0.3f) 
+            && car->direction.y < (angle->y + 0.3f))
+    {
+	if (determinant <= 0)
+	    return ACCELERATE_AND_TURN_RIGHT;
+        return ACCELERATE_AND_TURN_LEFT;
+    }
     printf("direct x = %f || angle x = %f\n", car->direction.x, angle->x);
 
     printf("direct y = %f || angle y = %f\n", car->direction.y, angle->y);
     if (determinant <= 0)
         return TURN_RIGHT;
-    else
-        return TURN_LEFT;
+    return TURN_LEFT;
 }
 enum move update(struct car *car)
 {
