@@ -20,7 +20,15 @@ struct vector2 *normalize_vec(struct vector2 vec)
     res->y = (vec.y)/div;
     return res;
 }
-  
+
+struct vector2 *create_vector(struct vector2 p1, struct vector2 *p2)
+{
+    struct vector2 *res = vector2_new();
+    res->x = p2->x - p1.x;
+    res->y = p2->y - p1.y;
+    return res;
+}
+
 struct vector2 *get_arrival(struct car *car)
 {
     struct vector2 *arrival = vector2_new();
@@ -42,18 +50,17 @@ struct vector2 *get_arrival(struct car *car)
 struct list_cp *create_checkpoint(struct car *car)
 {
     struct list_cp *list_cp = list_cp_init();
-    list_cp->cp = get_arrival(car);
     struct vector2 *cp1 = vector2_new();
-    cp1->x = 10;
-    cp1->y = 10;
-
+    cp1->x = 16;
+    cp1->y = 30;
+    list_cp->cp = cp1;
     struct vector2 *cp2 = vector2_new();
-    cp2->x = 20;
-    cp2->y = 20;
+    cp2->x = 30;
+    cp2->y = 18;
 
     struct vector2 *cp3 = vector2_new();
-    cp3->x = 30;
-    cp3->y = 30;
+    cp3->x = 45;
+    cp3->y = 3;
 
     struct vector2 *cp4 = get_arrival(car);
 
@@ -83,51 +90,64 @@ struct vector2 *get_angle(struct car *car, struct vector2 *cp)
             + pow((check_point->y - car->position.y),2));
 
     float cos = adjacent/hypotenus;
-    float sin = oppose/hypotenus;
-    struct vector2 *norm_direction = normalize_vec(car->direction);
-    double determinant = check_point->x*norm_direction->x 
-        - norm_direction->x*check_point->y;
+    float sin = oppose/hypotenus; 
 
     struct vector2 *angle = vector2_new();
     angle->x = sin;
-    if (determinant <= 0)
-        angle->y = -cos;
-    else
-        angle->y = -cos;
+    angle->y = -cos;
 
     return angle;
 }
 
+double get_determinant(struct vector2 *checkpoint, struct car *car)
+{
+    struct vector2 *car_direction = normalize_vec(car->direction);
+    struct vector2 *path = normalize_vec(*create_vector(car->position,checkpoint));
+    double determinant = path->x*car_direction->y - car_direction->x*path->y;
+    printf("determinant = %f\n", determinant);
+
+    return determinant;
+
+}
 enum move action (struct car *car)
 {
-    if (list_cp == NULL)
-        list_cp = create_checkpoint(car);
 
     struct vector2 *checkpoint = list_cp->cp;
+    double determinant = get_determinant(checkpoint,car);
     struct vector2 *angle = get_angle(car, checkpoint);
 
-    struct vector2 *norm_direction = normalize_vec(car->direction);
-    double determinant = checkpoint->x*norm_direction->x 
-        - norm_direction->x*checkpoint->y;
-
-    printf("determinant = %f\n", determinant);
     if (car->speed.x > 0.4f || car->speed.y > 0.4f)
         return BRAKE;
-    if (car->direction.x > (angle->x - 0.02f) 
-            && car->direction.x < (angle->x + 0.02f) 
-            && car->direction.y > (angle->y - 0.02f) 
-            && car->direction.y < (angle->y + 0.02f))
+    if (car->direction.x > (angle->x - 0.025f) 
+            && car->direction.x < (angle->x + 0.025f) 
+            && car->direction.y > (angle->y - 0.025f) 
+            && car->direction.y < (angle->y + 0.025f))
         return ACCELERATE;
-    printf("direct x = %f || angle x = %f\n", car->direction.x, angle->x);
+    
+    if (car->direction.x > (angle->x - 0.3f) 
+            && car->direction.x < (angle->x + 0.3f) 
+            && car->direction.y > (angle->y - 0.3f) 
+            && car->direction.y < (angle->y + 0.3f))
+    {
+	if (determinant <= 0)
+	    return ACCELERATE_AND_TURN_RIGHT;
+        return ACCELERATE_AND_TURN_LEFT;
+    }
 
+    printf("direct x = %f || angle x = %f\n", car->direction.x, angle->x);
     printf("direct y = %f || angle y = %f\n", car->direction.y, angle->y);
+
     if (determinant <= 0)
         return TURN_RIGHT;
-    else
-        return TURN_LEFT;
+    return TURN_LEFT;
 }
 enum move update(struct car *car)
 {
+    if (list_cp == NULL)
+        list_cp = create_checkpoint(car);
+    if (car->position.x == list_cp->cp->x && car->position.y == list_cp->cp->y)
+	list_cp = list_cp_pop(list_cp);
+    printf("x = %f && y = %f", list_cp->cp->x, list_cp->cp->y);
     car = car;
     return action(car);
 }
