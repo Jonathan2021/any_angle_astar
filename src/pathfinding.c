@@ -155,14 +155,14 @@ static void init_mat_point(struct point **mat_point, int height, int width)
 }
 
 //makes and returns vector2 with corresponding coordinates
-struct vector2 make_vec2(float y, float x)
+static struct vector2 make_vec2(float y, float x)
 {
     struct vector2 v = {.y = y, .x = x};
     return v;
 }
 
 //calculates value of point.h at corresponding coords
-double get_h(int row, int col)
+static double get_h(int row, int col)
 {
     int finish_x = (int)finish->x;
     int finish_y = (int)finish->y;
@@ -174,7 +174,7 @@ double get_h(int row, int col)
 /*Builds path vector with first last step first and first step last
   doesn't include starting coords because they could be float but path vect
   only has rounded numbers*/
-void get_path(int row, int col)
+static void get_path(int row, int col)
 {
     int row_tmp;
     if(!path)
@@ -192,7 +192,7 @@ void get_path(int row, int col)
 }
 /*explore point mat_point[row][col] next to mat_point[row_static][col_static]
   and finds end or modifies f, g, h values if needed*/
-void explore(struct map *map, int row, int col, double factor)
+static void explore(struct map *map, int row, int col, double factor)
 {
     if(goal)
         return;
@@ -227,7 +227,7 @@ void explore(struct map *map, int row, int col, double factor)
 }
 
 //explore all 8 directions
-void explore_all(struct map *map)
+static void explore_all(struct map *map)
 {
     explore(map, row_static - 1, col_static, 1); //above
     explore(map, row_static + 1, col_static, 1); //under
@@ -240,7 +240,7 @@ void explore_all(struct map *map)
 }
 
 //initializing some static variables
-void init_static()
+static void init_static()
 {
     closed = malloc(map_height * (sizeof(int *)));
     mat_point = malloc(map_height * sizeof(struct point *));
@@ -255,7 +255,7 @@ void init_static()
 
 }
 
-void free_all()
+static void free_all()
 {
     for(int i = 0; i < map_height; ++i)
     {
@@ -267,6 +267,101 @@ void free_all()
     free(finish);
     vector_destroy(open);
 }
+
+static int is_checkpoint(int y, int x, struct vector *path)
+{
+    for(size_t i = 0; i < path->size; ++i)
+    {
+        if((int)path->data[i].y == y && (int)path->data[i].x == x)
+            return 1;
+    }
+    return 0;
+}
+
+
+static char floor_to_char(int y, int x, struct map *map)
+{
+    switch (map_get_floor(map, x, y))
+    {
+        case ROAD:
+            return 'r';
+        case GRASS:
+            return 'g';
+        case BLOCK:
+            return 'b';
+        case FINISH:
+            return 'f';
+    }
+    return 0;
+}
+
+static char **create_matrix(struct map *map, struct vector *path)
+{
+    char **mat = malloc(map->height * sizeof(char *));
+    for(int i = 0; i < map->height; ++i)
+    {
+        malloc(map->width * sizeof(char));
+    }
+    for(int i = 0; i < map->height; ++i)
+    {
+        for(int j = 0; j < map->width; ++j)
+        {
+            mat[i][j] = floor_to_char(i, j, map);
+        }
+    }
+    for(size_t i = 0; i < path->size; ++i)
+    {
+        mat[(int)path->data[i].y][(int)path->data[i].x] += ('A' - 'a');
+    }
+    return mat;
+}
+
+static void free_mat(char **mat, int height)
+{
+    for(int i = 0; i < height; ++i)
+    {
+        free(mat[i]);
+    }
+    free(mat);
+}
+
+static void print_cell(char c)
+{
+    if(c < 'a')
+    {
+        printf("%s%c", KRED, c);
+    }
+    switch (c)
+    {
+        case 'r':
+            printf("%s%c", KWHT, c);
+            break;
+        case 'g':
+            printf("%s%c", KGRN, c);
+            break;
+        case 'b':
+            printf("%s%c", KBLU, c);
+            break;
+        case 'f':
+            printf("%s%c", KYEL, c);
+            break;
+    }
+}
+
+static void print_map(struct map *map, struct vector *path)
+{
+    char **mat = create_matrix(map, path);
+    for(int i = 0; i < map->height; ++i)
+    {
+        for(int j = 0; j < map->width; ++j)
+        {
+            print_cell(mat[i][j]);
+        }
+        printf("\n");
+    }
+    free_mat(mat, map->height);
+}
+
 /* A* path finding algorithm on map
    FIXME modify me to become Theta* any-angle algorithm to reduce actions*/
 struct vector *find_path(struct map *map)
@@ -306,103 +401,9 @@ struct vector *find_path(struct map *map)
         if(goal)
             break;
     }
+    print_map(map, path);
 
 fail_init: //free allocated stuff and return the path(NULL if not found)
     free_all();
     return path;
-
 }
-
-int is_checkpoint(int y, int x, struct vector *path)
-{
-    for(size_t i = 0; i < path->size; ++i)
-    {
-        if((int)path->data[i].y == y && (int)path->data[i].x == x)
-            return 1;
-    }
-    return 0;
-}
-
-
-char floor_to_char(int y, int x, struct map *map)
-{
-    switch (map_get_floor(map, x, y))
-    {
-        case ROAD:
-            return 'r';
-        case GRASS:
-            return 'g';
-        case BLOCK:
-            return 'b';
-        case FINISH:
-            return 'f';
-    }
-    return 0;
-}
-
-char **create_matrix(struct map *map, struct vector *path)
-{
-    char **mat = malloc(map->height * sizeof(char *));
-    for(int i = 0; i < map->height; ++i)
-    {
-        malloc(map->width * sizeof(char));
-    }
-    for(int i = 0; i < map->height; ++i)
-    {
-        for(int j = 0; j < map->width; ++j)
-        {
-            mat[i][j] = floor_to_char(i, j, map);
-        }
-    }
-    for(size_t i = 0; i < path->size; ++i)
-    {
-        mat[(int)path->data[i].y][(int)path->data[i].x] += ('A' - 'a');
-    }
-    return mat;
-}
-
-void free_mat(char **mat, int height)
-{
-    for(int i = 0; i < height; ++i)
-    {
-        free(mat[i]);
-    }
-    free(mat);
-}
-
-void print_cell(char c)
-{
-    if(c < 'a')
-    {
-        printf("%s%c", KRED, c);
-    }
-    switch (c)
-    {
-        case 'r':
-            printf("%s%c", KWHT, c);
-            break;
-        case 'g':
-            printf("%s%c", KGRN, c);
-            break;
-        case 'b':
-            printf("%s%c", KBLU, c);
-            break;
-        case 'f':
-            printf("%s%c", KYEL, c);
-            break;
-    }
-}
-
-void print_map(struct map *map, struct vector *path)
-{
-    char **mat = create_matrix(map, path);
-    for(int i = 0; i < map->height; ++i)
-    {
-        for(int j = 0; j < map->width; ++j)
-        {
-            print_cell(mat[i][j]);
-        }
-        printf("\n");
-    }
-}
-

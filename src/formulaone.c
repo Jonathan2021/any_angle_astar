@@ -4,8 +4,10 @@
 #include <stdio.h>
 #include "vector.h"
 #include "list_cp.h"
+#include "pathfinding.h"
 
-static struct list_cp *list_cp;
+//static struct list_cp *list_cp;
+static struct vector *path = NULL;
 int square (int x)
 {
     return x*x;
@@ -49,6 +51,10 @@ struct vector2 *get_arrival(struct car *car)
 
 struct list_cp *create_checkpoint(struct car *car)
 {
+    if (!path)
+        path = find_path(car->map);
+/*
+
     struct list_cp *list_cp = list_cp_init();
     struct vector2 *cp1 = vector2_new();
     cp1->x = 15;
@@ -70,6 +76,7 @@ struct list_cp *create_checkpoint(struct car *car)
     list_cp = list_cp_append(list_cp,cp4);
 
     return list_cp;
+*/
 }
 
 
