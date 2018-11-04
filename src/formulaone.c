@@ -3,11 +3,11 @@
 #include <math.h>
 #include <stdio.h>
 #include "vector.h"
-#include "list_cp.h"
 #include "pathfinding.h"
 
-static struct list_cp *list_cp;
-//static struct vector *path = NULL;
+static struct vector *list_cp = NULL;
+static size_t pos;
+
 int square (int x)
 {
     return x*x;
@@ -48,14 +48,14 @@ struct vector2 *get_arrival(struct car *car)
     return arrival;
 }
 
-
-struct list_cp *create_checkpoint(struct car *car)
+// à toi de mettre tes checkpoints !
+struct vector *create_checkpoint(struct car *car)
 {
-    struct list_cp *list_cp = list_cp_init();
+    struct vector *list_cp = vector_init(4);
+    pos++;
     struct vector2 *cp1 = vector2_new();
     cp1->x = 15;
     cp1->y = 3;
-    list_cp->cp = cp1;
     struct vector2 *cp2 = vector2_new();
     cp2->x = 30;
     cp2->y = 18;
@@ -66,10 +66,10 @@ struct list_cp *create_checkpoint(struct car *car)
 
     struct vector2 *cp4 = get_arrival(car);
 
-    list_cp = list_cp_append(list_cp,cp1);
-    list_cp = list_cp_append(list_cp,cp2);
-    list_cp = list_cp_append(list_cp,cp3);
-    list_cp = list_cp_append(list_cp,cp4);
+    list_cp = vector_append(list_cp,*cp1);
+    list_cp = vector_append(list_cp,*cp2);
+    list_cp = vector_append(list_cp,*cp3);
+    list_cp = vector_append(list_cp,*cp4);
 
     return list_cp;
 
@@ -106,12 +106,12 @@ double get_determinant(struct vector2 *checkpoint, struct car *car)
     return determinant;
 
 }
+
 enum move action (struct car *car)
 {
-
-    struct vector2 *checkpoint = list_cp->cp;
-    double determinant = get_determinant(checkpoint,car);
-    double angle = get_angle(car, checkpoint);
+    struct vector2 checkpoint = list_cp->data[pos];
+    double determinant = get_determinant(&checkpoint,car);
+    double angle = get_angle(car, &checkpoint);
     double car_angle = asin(car->direction.x)*180/M_PI; 
 
     if (car->speed.x > 0.2f || car->speed.y > 0.2f)
@@ -132,17 +132,21 @@ enum move action (struct car *car)
         return TURN_RIGHT;
     return TURN_LEFT;
 }
+
+
 enum move update(struct car *car)
-{
+ {
     if (list_cp == NULL)
         list_cp = create_checkpoint(car);
-    if (car->position.x >= list_cp->cp->x - 5 && car->position.x <= list_cp->cp->x + 5 &&
-	    car->position.y >= list_cp->cp->y - 5 && car->position.y <= list_cp->cp->y + 5 && list_cp->next)
+
+    //je check si elle passe dans le cp et incremente pos popur passer au prochain cp si c'est le cas
+    if (car->position.x >= list_cp->data[pos].x - 5 && car->position.x <= list_cp->data[pos].x + 5 &&
+	    car->position.y >= list_cp->data[pos].y - 5 && car->position.y <= list_cp->data[pos].y + 5 && pos < list_cp->size)
     {
-	list_cp = list_cp->next;
+	pos++;
 	printf("CHECKPOINT GOOD ! SWAPING TO NEXT ONE");
     }
-    printf("list x = %f && y = %f\n", list_cp->cp->x, list_cp->cp->y); 
+    printf("list x = %f && y = %f\n", list_cp->data[pos].x, list_cp->data[pos].y); 
     printf("car x = %f && y = %f\n", car->position.x, car->position.y);
     car = car;
     return action(car);
