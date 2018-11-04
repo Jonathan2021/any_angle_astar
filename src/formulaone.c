@@ -51,6 +51,8 @@ struct vector2 *get_arrival(struct car *car)
 // à toi de mettre tes checkpoints !
 struct vector *create_checkpoint(struct car *car)
 {
+    return find_path(car->map);
+    /*
     struct vector *list_cp = vector_init(4);
     pos++;
     struct vector2 *cp1 = vector2_new();
@@ -72,6 +74,7 @@ struct vector *create_checkpoint(struct car *car)
     list_cp = vector_append(list_cp,*cp4);
 
     return list_cp;
+    */
 
 }
 

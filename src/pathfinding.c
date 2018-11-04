@@ -73,13 +73,15 @@ static enum floortype floor_vect(struct map *map, struct vector2 *v)
 // return true if vector2 is a BLOCK floortype
 static int blocked_vec(struct map *map, struct vector2 *v)
 {
-    return (floor_vect(map, v) == BLOCK);
+    enum floortype floor = floor_vect(map, v);
+    return (floor == BLOCK || floor == GRASS);
 }
 
 // return true if coords is BLOCK floortype
 static int blocked(struct map *map, int row, int col)
 {
-    return(map_get_floor(map, col, row) == BLOCK);
+    enum floortype floor = map_get_floor(map, col, row);
+    return(floor == BLOCK || floor == GRASS);
 }
 
 // return true if vector2 is FINISH BLOCK
@@ -171,7 +173,7 @@ static double get_h(int row, int col)
 }
 
 
-/*Builds path vector with first last step first and first step last
+/*Builds path vector in correct order
   doesn't include starting coords because they could be float but path vect
   only has rounded numbers*/
 static void get_path(int row, int col)
@@ -184,7 +186,7 @@ static void get_path(int row, int col)
     while(!(mat_point[row][col].parent_y == row && \
                 mat_point[row][col].parent_x == col))
     {
-        path = vector_append(path, make_vec2(row, col));
+        path = vector_insert(path, 0, make_vec2(row, col));
         row_tmp = mat_point[row][col].parent_y;
         col = mat_point[row][col].parent_x;
         row = row_tmp;
@@ -267,7 +269,7 @@ static void free_all()
     free(finish);
     vector_destroy(open);
 }
-
+/*
 static int is_checkpoint(int y, int x, struct vector *path)
 {
     for(size_t i = 0; i < path->size; ++i)
@@ -277,7 +279,7 @@ static int is_checkpoint(int y, int x, struct vector *path)
     }
     return 0;
 }
-
+*/
 
 static char floor_to_char(int y, int x, struct map *map)
 {
