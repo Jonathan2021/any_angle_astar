@@ -51,8 +51,8 @@ struct list_cp *create_checkpoint(struct car *car)
 {
     struct list_cp *list_cp = list_cp_init();
     struct vector2 *cp1 = vector2_new();
-    cp1->x = 16;
-    cp1->y = 30;
+    cp1->x = 15;
+    cp1->y = 3;
     list_cp->cp = cp1;
     struct vector2 *cp2 = vector2_new();
     cp2->x = 30;
@@ -116,7 +116,7 @@ enum move action (struct car *car)
     double determinant = get_determinant(checkpoint,car);
     struct vector2 *angle = get_angle(car, checkpoint);
 
-    if (car->speed.x > 0.4f || car->speed.y > 0.4f)
+    if (car->speed.x > 0.2f || car->speed.y > 0.2f)
         return BRAKE;
     if (car->direction.x > (angle->x - 0.025f) 
             && car->direction.x < (angle->x + 0.025f) 
@@ -145,9 +145,14 @@ enum move update(struct car *car)
 {
     if (list_cp == NULL)
         list_cp = create_checkpoint(car);
-    if (car->position.x == list_cp->cp->x && car->position.y == list_cp->cp->y)
-	list_cp = list_cp_pop(list_cp);
-    printf("x = %f && y = %f", list_cp->cp->x, list_cp->cp->y);
+    if (car->position.x >= list_cp->cp->x - 5 && car->position.x <= list_cp->cp->x + 5 &&
+	    car->position.y >= list_cp->cp->y - 5 && car->position.y <= list_cp->cp->y + 5)
+    {
+	list_cp = list_cp->next;
+	printf("CHECKPOINT GOOD ! SWAPING TO NEXT ONE");
+    }
+    printf("list x = %f && y = %f\n", list_cp->cp->x, list_cp->cp->y); 
+    printf("car x = %f && y = %f\n", car->position.x, car->position.y);
     car = car;
     return action(car);
 }
