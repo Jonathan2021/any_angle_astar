@@ -6,8 +6,8 @@
 #include "list_cp.h"
 #include "pathfinding.h"
 
-//static struct list_cp *list_cp;
-static struct vector *path = NULL;
+static struct list_cp *list_cp;
+//static struct vector *path = NULL;
 int square (int x)
 {
     return x*x;
@@ -51,10 +51,6 @@ struct vector2 *get_arrival(struct car *car)
 
 struct list_cp *create_checkpoint(struct car *car)
 {
-    if (!path)
-        path = find_path(car->map);
-/*
-
     struct list_cp *list_cp = list_cp_init();
     struct vector2 *cp1 = vector2_new();
     cp1->x = 15;
@@ -76,32 +72,26 @@ struct list_cp *create_checkpoint(struct car *car)
     list_cp = list_cp_append(list_cp,cp4);
 
     return list_cp;
-*/
+
 }
 
 
-struct vector2 *get_angle(struct car *car, struct vector2 *cp)
+double get_angle(struct car *car, struct vector2 *cp)
 {
-
     struct vector2 *check_point = cp;
 
     struct vector2 *triangle_rec = vector2_new();
     triangle_rec->x = car->position.x;
     triangle_rec->y = check_point->y;
 
-    float adjacent = sqrt(pow((triangle_rec->x - car->position.x),2) 
-            + pow((triangle_rec->y - car->position.y),2)); 
     float oppose = sqrt(pow((triangle_rec->x - check_point->x),2) 
             + pow((triangle_rec->y - check_point->y),2));
     float hypotenus = sqrt(pow((check_point->x - car->position.x),2) 
             + pow((check_point->y - car->position.y),2));
 
-    float cos = adjacent/hypotenus;
     float sin = oppose/hypotenus; 
 
-    struct vector2 *angle = vector2_new();
-    angle->x = sin;
-    angle->y = -cos;
+    double angle = asin(sin)*180/M_PI;
 
     return angle;
 }
@@ -121,29 +111,23 @@ enum move action (struct car *car)
 
     struct vector2 *checkpoint = list_cp->cp;
     double determinant = get_determinant(checkpoint,car);
-    struct vector2 *angle = get_angle(car, checkpoint);
+    double angle = get_angle(car, checkpoint);
+    double car_angle = asin(car->direction.x)*180/M_PI; 
 
     if (car->speed.x > 0.2f || car->speed.y > 0.2f)
         return BRAKE;
-    if (car->direction.x > (angle->x - 0.025f) 
-            && car->direction.x < (angle->x + 0.025f) 
-            && car->direction.y > (angle->y - 0.025f) 
-            && car->direction.y < (angle->y + 0.025f))
+    if (angle > car_angle - 3 && angle < car_angle + 3) 
         return ACCELERATE;
     
-    if (car->direction.x > (angle->x - 0.3f) 
-            && car->direction.x < (angle->x + 0.3f) 
-            && car->direction.y > (angle->y - 0.3f) 
-            && car->direction.y < (angle->y + 0.3f))
+    if (angle > car_angle - 7 && angle < car_angle + 7)
     {
 	if (determinant <= 0)
 	    return ACCELERATE_AND_TURN_RIGHT;
         return ACCELERATE_AND_TURN_LEFT;
     }
 
-    printf("direct x = %f || angle x = %f\n", car->direction.x, angle->x);
-    printf("direct y = %f || angle y = %f\n", car->direction.y, angle->y);
-
+    printf("angle = %f\n", angle);
+    printf("car angle = %f\n", asin(car->direction.x)*180/M_PI);
     if (determinant <= 0)
         return TURN_RIGHT;
     return TURN_LEFT;
@@ -153,7 +137,7 @@ enum move update(struct car *car)
     if (list_cp == NULL)
         list_cp = create_checkpoint(car);
     if (car->position.x >= list_cp->cp->x - 5 && car->position.x <= list_cp->cp->x + 5 &&
-	    car->position.y >= list_cp->cp->y - 5 && car->position.y <= list_cp->cp->y + 5)
+	    car->position.y >= list_cp->cp->y - 5 && car->position.y <= list_cp->cp->y + 5 && list_cp->next)
     {
 	list_cp = list_cp->next;
 	printf("CHECKPOINT GOOD ! SWAPING TO NEXT ONE");
