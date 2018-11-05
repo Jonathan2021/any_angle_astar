@@ -31,22 +31,6 @@ struct vector2 *create_vector(struct vector2 p1, struct vector2 *p2)
     return res;
 }
 
-struct vector2 *get_arrival(struct car *car)
-{
-    struct vector2 *arrival = vector2_new();
-    for( int i = 0; i < car->map->width; i++)
-    {
-        for (int j = 0; j < car->map->height; j++)
-        {
-            if ( map_get_floor(car->map,i,j) == FINISH)
-            {
-                arrival->x = i + 0.5f;
-                arrival->y = j + 0.5f;
-            }
-        }
-    } 
-    return arrival;
-}
 
 // à toi de mettre tes checkpoints !
 struct vector *create_checkpoint(struct car *car)
@@ -120,11 +104,11 @@ enum move action (struct car *car)
     printf("angle = %f\n", angle);
     printf("car angle = %f\n", asin(car->direction.x)*180/M_PI);
 
-    if (angle > car_angle - 2 && angle < car_angle + 2
+    if (angle > fabs(car_angle) - 2 && angle < fabs(car_angle) + 2
             && determinant < 0.3f && determinant > -0.3f) 
         return ACCELERATE;
 
-    if (angle > car_angle - 4 && angle < car_angle + 4 
+    if (angle > fabs(car_angle) - 4 && angle < fabs(car_angle) + 4 
             && determinant < 0.3f && determinant > -0.3f)
     {
         if (determinant <= 0)
@@ -141,10 +125,10 @@ enum move update(struct car *car)
 {
     if (list_cp == NULL)
         list_cp = create_checkpoint(car);
-    
-    double brake_distance = (fabs(car->speed.x) + fabs(car->speed.y))*15;
-    if (brake_distance < 1)
-        brake_distance = 1;
+
+    double brake_distance = (fabs(car->speed.x) + fabs(car->speed.y))*10/0.95f;
+    if (brake_distance < 1.5f)
+        brake_distance = 1.5f;
 
     if (car->position.x >= list_cp->data[pos].x - brake_distance
             && car->position.x <= list_cp->data[pos].x + brake_distance 
@@ -155,14 +139,21 @@ enum move update(struct car *car)
         if (car->speed.x == 0 && car->speed.y == 0)
         {
             if (pos < list_cp->size - 1)
+            {
                 pos++;
-            printf("CHECKPOINT GOOD ! SWAPING TO NEXT ONE\n");
+            }
+            if (pos == list_cp->size - 1)
+            {
+                list_cp->data[pos].x += 0.5f;
+                list_cp->data[pos].y += 0.5f;
+            }
+            printf("CHECKPOINT GOOD ! SWAPING TO NEXT ONE\n\n\n\n");
         }
         else
             if (pos < list_cp->size - 1)
                 return BRAKE;
     }
-    
+
     printf("speed x = %f && y = %f\n",car->speed.x,car->speed.y); 
     printf("list x = %f && y = %f\n",list_cp->data[pos].x,list_cp->data[pos].y); 
     printf("car x = %f && y = %f\n", car->position.x, car->position.y);
