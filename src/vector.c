@@ -52,7 +52,7 @@ struct vector *vector_append(struct vector *v, struct vector2 elt)
 
 void vector_print(const struct vector *v)
 {
-    for(size_t i = 0; i<v->size; ++i)
+    for(size_t i = 0; i < v->size; ++i)
     {
         if(i == v->size-1)
             printf("(%.2f, %.2f)", v->data[i].x, v->data[i].y);

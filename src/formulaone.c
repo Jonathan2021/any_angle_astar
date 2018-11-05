@@ -51,9 +51,9 @@ struct vector2 *get_arrival(struct car *car)
 // à toi de mettre tes checkpoints !
 struct vector *create_checkpoint(struct car *car)
 {
+    printf("entered creat_checkpoint\n");
     return find_path(car->map);
-    /*
-    struct vector *list_cp = vector_init(4);
+    /*struct vector *list_cp = vector_init(4);
     pos++;
     struct vector2 *cp1 = vector2_new();
     cp1->x = 15;
@@ -75,7 +75,6 @@ struct vector *create_checkpoint(struct car *car)
 
     return list_cp;
     */
-
 }
 
 
@@ -138,7 +137,7 @@ enum move action (struct car *car)
 
 
 enum move update(struct car *car)
- {
+{
     if (list_cp == NULL)
         list_cp = create_checkpoint(car);
 
