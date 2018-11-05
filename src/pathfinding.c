@@ -337,8 +337,7 @@ struct map *map, int row, int col)
         if(arrived(map, row, col)) //we reached end point
         {
             printf("arrived %d %d\n", row, col);
-            mat_point[row][col].parent_x = col_static; 
-            mat_point[row][col].parent_y = row_static;
+            ComputeCost(map, row_static, col_static, row, col);
             get_path(path, row, col); //trace back path
             goal = 1; //YAY we arrived at the finish line
             return;
