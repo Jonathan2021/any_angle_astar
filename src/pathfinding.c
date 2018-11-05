@@ -182,6 +182,76 @@ static void init_mat_point(int height, int width)
     //printf("exiting init_mat_point\n");
 }
 
+int line_of_sight(struct map *map, int parent_y, int parent_x, int y, int x)
+{
+    int old_x = parent_x;
+    int old_y = parent_y;
+    printf("entering line_of_sight\n");
+    int sy, sx;
+    int dy = y - parent_y;
+    int dx = x - parent_x;
+    int f = 0;
+    if (dy < 0)
+    {
+        dy *= -1;
+        sy = -1;
+    }
+    else
+        sy = 1;
+    if (dx < 0)
+    {
+        dx *= -1;
+        sx = -1;
+    }
+    else
+        sx = 1;
+    if (dx >= dy)
+    {
+        while (parent_x != x)
+        {
+            f = f + dy;
+            if (f >= dx)
+            {
+                if (blocked(map, parent_y + ((sy - 1) / 2), parent_x + ((sx - 1) / 2)))
+                    return 0;
+                parent_y = parent_y + sy;
+                f = f - dx;
+            }
+            if (f != 0 && blocked(map, parent_y + ((sy - 1) / 2), parent_x + ((sx - 1) / 2)))
+                return 0;
+            if (!dy && blocked(map, parent_y, parent_x + ((sx - 1) / 2)) && blocked(map, parent_y - 1, parent_x + ((sx - 1) / 2)))
+                return 0;
+            parent_x += sx;
+        }
+    }
+    else
+    {
+        while (parent_y != y)
+        {
+            f = f + dx;
+            if (f >= dy)
+            {
+                if (blocked(map, parent_y + ((sy - 1) / 2), parent_x + ((sx - 1) / 2)))
+                    return 0;
+                parent_x += sx;
+                f = f - dy;
+            }
+            if (f != 0 && blocked(map, parent_y + ((sy - 1) / 2), parent_x + ((sx - 1) / 2)))
+                return 0;
+            if (!dx && blocked(map, parent_y + ((sy - 1) / 2), parent_x) && blocked(map, parent_y + ((sy - 1) / 2), parent_x - 1))
+                return 0;
+            parent_y += sy;   
+        }
+    }
+    printf("yay there is a line of sight between %d %d and %d %d\n", old_y, old_x, y, x);
+    return 1;
+}
+/*
+struct point parent(struct point p)
+{
+    return (mat_point[p.parent_y][p.parent_x]);
+}
+*/
 //makes and returns vector2 with corresponding coordinates
 static struct vector2 make_vec2(float y, float x)
 {
@@ -191,15 +261,46 @@ static struct vector2 make_vec2(float y, float x)
 }
 
 //calculates value of point.h at corresponding coords
-static double get_h(int row, int col)
+static double get_c(int row, int col, int finish_x, int finish_y)
 {
     //printf("entering get_h\n");
-    int finish_x = (int)finish->x;
-    int finish_y = (int)finish->y;
     return ((double)sqrt((row - finish_y)*(row - finish_y) + \
                 (col - finish_x)*(col - finish_x)));
 }
 
+void ComputeCost(struct map *map, int old_y, int old_x, int y, int x)
+{
+    printf("entering ComputeCost\n");
+    double new_g;
+    struct point par = mat_point[old_y][old_x];
+    printf("old_y %.0f old_x %.0f\n", par.parent_y, par.parent_x);
+    struct point gp = mat_point[(int)par.parent_y][(int)par.parent_x];
+    if (line_of_sight(map, par.parent_y, par.parent_x, y, x))
+    {
+        printf("entering first if\n");
+        new_g = (gp.g + get_c((int)par.parent_y, (int)par.parent_x, y, x));
+        if(mat_point[y][x].g < 0 || new_g < mat_point[y][x].g)
+        {
+            printf("entering second if\n");
+            mat_point[y][x].parent_x = par.parent_x;
+            mat_point[y][x].parent_y = par.parent_y;
+            mat_point[y][x].g = new_g;
+        }
+    }
+    else
+    {
+        printf("entering else\n");
+        new_g = mat_point[old_y][old_x].g + get_c(old_y, old_x, y, x);
+        if(mat_point[y][x].g < 0 || new_g < mat_point[y][x].g)
+        {
+        printf("entering if of else\n");
+            mat_point[y][x].parent_x = old_x;
+            mat_point[y][x].parent_y = old_y;
+            mat_point[y][x].g = new_g;
+        }
+    }
+    printf("exiting ComputeCost\n");
+}
 
 /*Builds path vector in correct order
   doesn't include starting coords because they could be float but path vect
@@ -226,7 +327,7 @@ static void get_path(struct vector *path, int row, int col)
 /*explore point mat_point[row][col] next to mat_point[row_static][col_static]
   and finds end or modifies f, g, h values if needed*/
 static void explore(struct vector *path, 
-struct map *map, int row, int col, double factor)
+struct map *map, int row, int col)
 {
     printf("entering explore\n");
     if(goal)
@@ -244,20 +345,17 @@ struct map *map, int row, int col, double factor)
         }
 
         if (!closed[row][col] && !blocked(map, row, col)) //not a block 
-        {                                            //and not explored
-            double new_g = mat_point[row_static][col_static].g + factor; 
-            double new_h = get_h(row, col);
+        {                                            //and not explored 
+            ComputeCost(map, row_static, col_static, row, col);
+            double new_h = get_c(row, col, (int)finish->y, (int)finish->x);
             printf("exiting get_h\n");
-            double new_f = new_g + new_h;
+            double new_f = mat_point[row][col].g + new_h;
             if(mat_point[row][col].f < 0 || mat_point[row][col].f > new_f)
             {
                 open = vector_append(open, make_vec2(row, col)); //to be explored
                 printf("exiting make_vec2\n");
-                mat_point[row][col].parent_x = col_static;
-                mat_point[row][col].parent_y = row_static;
                 mat_point[row][col].h = new_h;
                 mat_point[row][col].f = new_f;
-                mat_point[row][col].g = new_g;
             }
 
         }
@@ -269,14 +367,14 @@ struct map *map, int row, int col, double factor)
 static void explore_all(struct vector *path, struct map *map)
 {
     printf("entering explore_all\n");
-    explore(path, map, row_static - 1, col_static, 1); //above
-    explore(path, map, row_static + 1, col_static, 1); //under
-    explore(path, map, row_static, col_static - 1, 1); //left
-    explore(path, map, row_static, col_static + 1, 1); //right
-    explore(path, map, row_static - 1, col_static - 1, 1.414); //upper-left
-    explore(path, map, row_static - 1, col_static + 1, 1.414); //upper-right
-    explore(path, map, row_static + 1, col_static - 1, 1.414); //lower-left
-    explore(path, map, row_static + 1, col_static + 1, 1.414); //lower-right
+    explore(path, map, row_static - 1, col_static); //above
+    explore(path, map, row_static + 1, col_static); //under
+    explore(path, map, row_static, col_static - 1); //left
+    explore(path, map, row_static, col_static + 1); //right
+    explore(path, map, row_static - 1, col_static - 1); //upper-left
+    explore(path, map, row_static - 1, col_static + 1); //upper-right
+    explore(path, map, row_static + 1, col_static - 1); //lower-left
+    explore(path, map, row_static + 1, col_static + 1); //lower-right
     printf("exiting explore_all\n");
 }
 
