@@ -17,7 +17,7 @@ struct vector2 *normalize_vec(struct vector2 vec)
     struct vector2 *res = vector2_new();
     double div = (sqrt(square(vec.x) + square(vec.y)));
     if (div == 0)
-	div = 1;
+        div = 1;
     res->x = (vec.x)/div;
     res->y = (vec.y)/div;
     return res;
@@ -54,27 +54,27 @@ struct vector *create_checkpoint(struct car *car)
     printf("entered creat_checkpoint\n");
     return find_path(car->map);
     /*struct vector *list_cp = vector_init(4);
-    pos++;
-    struct vector2 *cp1 = vector2_new();
-    cp1->x = 15;
-    cp1->y = 3;
-    struct vector2 *cp2 = vector2_new();
-    cp2->x = 30;
-    cp2->y = 18;
+      pos++;
+      struct vector2 *cp1 = vector2_new();
+      cp1->x = 15;
+      cp1->y = 3;
+      struct vector2 *cp2 = vector2_new();
+      cp2->x = 30;
+      cp2->y = 18;
 
-    struct vector2 *cp3 = vector2_new();
-    cp3->x = 45;
-    cp3->y = 3;
+      struct vector2 *cp3 = vector2_new();
+      cp3->x = 45;
+      cp3->y = 3;
 
-    struct vector2 *cp4 = get_arrival(car);
+      struct vector2 *cp4 = get_arrival(car);
 
-    list_cp = vector_append(list_cp,*cp1);
-    list_cp = vector_append(list_cp,*cp2);
-    list_cp = vector_append(list_cp,*cp3);
-    list_cp = vector_append(list_cp,*cp4);
+      list_cp = vector_append(list_cp,*cp1);
+      list_cp = vector_append(list_cp,*cp2);
+      list_cp = vector_append(list_cp,*cp3);
+      list_cp = vector_append(list_cp,*cp4);
 
-    return list_cp;
-    */
+      return list_cp;
+      */
 }
 
 
@@ -116,23 +116,25 @@ enum move action (struct car *car)
     double angle = get_angle(car, &checkpoint);
     double car_angle = asin(car->direction.x)*180/M_PI; 
 
-    if (car->speed.x > 0.2f || car->speed.y > 0.2f)
+    if ( car->speed.x > 0.2f || car->speed.y > 0.2f)
         return BRAKE;
-    if (angle > car_angle - 3 && angle < car_angle + 3) 
+    if (angle > car_angle - 1.5f && angle < car_angle + 1.5f
+            && determinant < 0.3f && determinant > -0.3f) 
         return ACCELERATE;
-    
-    if (angle > car_angle - 7 && angle < car_angle + 7)
+
+    if (angle > car_angle - 4 && angle < car_angle + 4 
+            && determinant < 0.3f && determinant > -0.3f)
     {
-	if (determinant <= 0)
-	    return ACCELERATE_AND_TURN_RIGHT;
+        if (determinant <= 0)
+            return ACCELERATE_AND_TURN_RIGHT;
         return ACCELERATE_AND_TURN_LEFT;
     }
 
     printf("angle = %f\n", angle);
     printf("car angle = %f\n", asin(car->direction.x)*180/M_PI);
     if (determinant <= 0)
-        return TURN_RIGHT;
-    return TURN_LEFT;
+        return BRAKE_AND_TURN_RIGHT;
+    return BRAKE_AND_TURN_LEFT;
 }
 
 
@@ -141,14 +143,25 @@ enum move update(struct car *car)
     if (list_cp == NULL)
         list_cp = create_checkpoint(car);
 
-    //je check si elle passe dans le cp et incremente pos popur passer au prochain cp si c'est le cas
-    if (car->position.x >= list_cp->data[pos].x - 5 && car->position.x <= list_cp->data[pos].x + 5 &&
-	    car->position.y >= list_cp->data[pos].y - 5 && car->position.y <= list_cp->data[pos].y + 5 && pos < list_cp->size)
+    //je check si elle passe dans le cp et incremente pos popur passer 
+    //au prochain cp si c'est le cas
+    if (car->position.x >= list_cp->data[pos].x - 3
+            && car->position.x <= list_cp->data[pos].x + 3 
+            && car->position.y >= list_cp->data[pos].y - 3 
+            && car->position.y <= list_cp->data[pos].y + 3 
+            && pos < list_cp->size)
     {
-	pos++;
-	printf("CHECKPOINT GOOD ! SWAPING TO NEXT ONE");
+        if (car->speed.x == 0 && car->speed.y == 0)
+        {
+            if (pos < list_cp->size - 1)
+                pos++;
+            printf("CHECKPOINT GOOD ! SWAPING TO NEXT ONE\n");
+        }
+        else
+            if (pos < list_cp->size - 1)
+                return BRAKE;
     }
-    printf("list x = %f && y = %f\n", list_cp->data[pos].x, list_cp->data[pos].y); 
+    printf("list x = %f && y = %f\n",list_cp->data[pos].x,list_cp->data[pos].y); 
     printf("car x = %f && y = %f\n", car->position.x, car->position.y);
     car = car;
     return action(car);
