@@ -101,7 +101,8 @@ double get_angle(struct car *car, struct vector2 *cp)
 double get_determinant(struct vector2 *checkpoint, struct car *car)
 {
     struct vector2 *car_direction = normalize_vec(car->direction);
-    struct vector2 *path = normalize_vec(*create_vector(car->position,checkpoint));
+    struct vector2 *path = 
+        normalize_vec(*create_vector(car->position,checkpoint));
     double determinant = path->x*car_direction->y - car_direction->x*path->y;
     printf("determinant = %f\n", determinant);
 
@@ -116,9 +117,10 @@ enum move action (struct car *car)
     double angle = get_angle(car, &checkpoint);
     double car_angle = asin(car->direction.x)*180/M_PI; 
 
-    if ( car->speed.x > 0.2f || car->speed.y > 0.2f)
-        return BRAKE;
-    if (angle > car_angle - 1.5f && angle < car_angle + 1.5f
+    printf("angle = %f\n", angle);
+    printf("car angle = %f\n", asin(car->direction.x)*180/M_PI);
+
+    if (angle > car_angle - 2 && angle < car_angle + 2
             && determinant < 0.3f && determinant > -0.3f) 
         return ACCELERATE;
 
@@ -130,25 +132,24 @@ enum move action (struct car *car)
         return ACCELERATE_AND_TURN_LEFT;
     }
 
-    printf("angle = %f\n", angle);
-    printf("car angle = %f\n", asin(car->direction.x)*180/M_PI);
     if (determinant <= 0)
         return BRAKE_AND_TURN_RIGHT;
     return BRAKE_AND_TURN_LEFT;
 }
 
-
 enum move update(struct car *car)
 {
     if (list_cp == NULL)
         list_cp = create_checkpoint(car);
+    
+    double brake_distance = (fabs(car->speed.x) + fabs(car->speed.y))*15;
+    if (brake_distance < 1)
+        brake_distance = 1;
 
-    //je check si elle passe dans le cp et incremente pos popur passer 
-    //au prochain cp si c'est le cas
-    if (car->position.x >= list_cp->data[pos].x - 3
-            && car->position.x <= list_cp->data[pos].x + 3 
-            && car->position.y >= list_cp->data[pos].y - 3 
-            && car->position.y <= list_cp->data[pos].y + 3 
+    if (car->position.x >= list_cp->data[pos].x - brake_distance
+            && car->position.x <= list_cp->data[pos].x + brake_distance 
+            && car->position.y >= list_cp->data[pos].y - brake_distance 
+            && car->position.y <= list_cp->data[pos].y + brake_distance 
             && pos < list_cp->size)
     {
         if (car->speed.x == 0 && car->speed.y == 0)
@@ -161,6 +162,8 @@ enum move update(struct car *car)
             if (pos < list_cp->size - 1)
                 return BRAKE;
     }
+    
+    printf("speed x = %f && y = %f\n",car->speed.x,car->speed.y); 
     printf("list x = %f && y = %f\n",list_cp->data[pos].x,list_cp->data[pos].y); 
     printf("car x = %f && y = %f\n", car->position.x, car->position.y);
     car = car;
