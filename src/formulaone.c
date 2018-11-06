@@ -131,26 +131,17 @@ struct vector2 *brake_to_speed(struct car *car, double speed)
 
 double speed_according_to_angle(struct car *car)
 {
-    double angle = get_angle(list_cp->data[pos], &list_cp->data[pos+1]);
-    double car_angle = asin(car->direction.x)*180/M_PI;
-    double diff_angle = fabs(fabs(car_angle) - fabs(angle));
-    double determinant = get_determinant(&list_cp->data[pos],car,car->position);
     double next_determinant = 
-        get_determinant(&list_cp->data[pos+1],car,list_cp->data[pos]);
-    double diff_deter = fabs(fabs(determinant) - fabs(next_determinant));
+        fabs(get_determinant(&list_cp->data[pos+1],car,list_cp->data[pos]));
 
-    if ( diff_deter > 0.3f 
-            || (diff_deter > 0.3f && determinant > 0 && next_determinant < 0)
-            || (diff_deter > 0.3f && determinant < 0 && next_determinant > 0))
-        return 0;
 
-    if (diff_angle < 1)
-        return 0.35f;
-    if (diff_angle < 3)
-        return 0.2f;
-    if (diff_angle < 5)
+    if (next_determinant < 0.03f)
+        return 0.3f;
+    if (next_determinant < 0.05f)
         return 0.15f;
-    if (diff_angle < 10)
+    if (next_determinant < 0.1f)
+        return 0.1f;
+    if (next_determinant < 0.2f)
         return 0.05f;
     return 0;
 }
