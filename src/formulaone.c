@@ -37,28 +37,6 @@ struct vector *create_checkpoint(struct car *car)
 {
     printf("entered creat_checkpoint\n");
     return find_path(car->map);
-    /*struct vector *list_cp = vector_init(4);
-      pos++;
-      struct vector2 *cp1 = vector2_new();
-      cp1->x = 15;
-      cp1->y = 3;
-      struct vector2 *cp2 = vector2_new();
-      cp2->x = 30;
-      cp2->y = 18;
-
-      struct vector2 *cp3 = vector2_new();
-      cp3->x = 45;
-      cp3->y = 3;
-
-      struct vector2 *cp4 = get_arrival(car);
-
-      list_cp = vector_append(list_cp,*cp1);
-      list_cp = vector_append(list_cp,*cp2);
-      list_cp = vector_append(list_cp,*cp3);
-      list_cp = vector_append(list_cp,*cp4);
-
-      return list_cp;
-      */
 }
 
 
@@ -104,7 +82,10 @@ enum move action (struct car *car)
     printf("angle = %f\n", angle);
     printf("car angle = %f\n", asin(car->direction.x)*180/M_PI);
 
-    if (angle > fabs(car_angle) - 2 && angle < fabs(car_angle) + 2
+    double car_turn_angle = (CAR_TURN_ANGLE)*180/M_PI;
+
+    if (angle > fabs(car_angle) - car_turn_angle*2 
+            && angle < fabs(car_angle) + car_turn_angle*2
             && determinant < 0.3f && determinant > -0.3f) 
         return ACCELERATE;
 
@@ -114,11 +95,26 @@ enum move action (struct car *car)
         if (determinant <= 0)
             return ACCELERATE_AND_TURN_RIGHT;
         return ACCELERATE_AND_TURN_LEFT;
-    }
-
+    } 
     if (determinant <= 0)
         return BRAKE_AND_TURN_RIGHT;
     return BRAKE_AND_TURN_LEFT;
+}
+
+struct vector2 *brake_to_stop(struct car *car)
+{
+    struct car *save_car = car_clone(car);
+    int iter = 0;
+    while (save_car->speed.x != 0 && save_car->speed.y != 0)
+    {
+        car_move(save_car,BRAKE);
+        iter++;
+    }
+    struct vector2 *pos = vector2_new();
+    pos->x = save_car->position.x;
+    pos->y = save_car->position.y;
+    car_delete(save_car);
+    return pos;
 }
 
 enum move update(struct car *car)
@@ -126,32 +122,34 @@ enum move update(struct car *car)
     if (list_cp == NULL)
         list_cp = create_checkpoint(car);
 
-    double brake_distance = (fabs(car->speed.x) + fabs(car->speed.y))*10/0.95f;
-    if (brake_distance < 1.5f)
-        brake_distance = 1.5f;
-
-    if (car->position.x >= list_cp->data[pos].x - brake_distance
-            && car->position.x <= list_cp->data[pos].x + brake_distance 
-            && car->position.y >= list_cp->data[pos].y - brake_distance 
-            && car->position.y <= list_cp->data[pos].y + brake_distance 
-            && pos < list_cp->size)
+    if (pos != list_cp->size - 1)
     {
-        if (car->speed.x == 0 && car->speed.y == 0)
+        struct vector2 *pos_stop = brake_to_stop(car);
+        if (pos_stop->x >= list_cp->data[pos].x - 0.5f 
+                && pos_stop->x <= list_cp->data[pos].x + 0.5f
+                && pos_stop->y >= list_cp->data[pos].y - 0.5f 
+                && pos_stop->y <= list_cp->data[pos].y + 0.5f
+                && pos < list_cp->size)
         {
-            if (pos < list_cp->size - 1)
+            if (car->speed.x == 0 && car->speed.y == 0)
             {
-                pos++;
+                if (pos < list_cp->size - 1)
+                {
+                    pos++;
+                }
+                if (pos == list_cp->size - 1)
+                {
+                    list_cp->data[pos].x += 0.5f;
+                    list_cp->data[pos].y += 0.5f;
+                }
+                printf("supposed pos x = %f y = %f", list_cp->data[pos-1].x,
+                        list_cp->data[pos-1].y);
+                printf("mine x = %f y = %f", car->position.x, car->position.y);
+                printf("CHECKPOINT GOOD ! SWAPING TO NEXT ONE\n\n\n\n");
             }
-            if (pos == list_cp->size - 1)
-            {
-                list_cp->data[pos].x += 0.5f;
-                list_cp->data[pos].y += 0.5f;
-            }
-            printf("CHECKPOINT GOOD ! SWAPING TO NEXT ONE\n\n\n\n");
+            else
+                    return BRAKE;
         }
-        else
-            if (pos < list_cp->size - 1)
-                return BRAKE;
     }
 
     printf("speed x = %f && y = %f\n",car->speed.x,car->speed.y); 
