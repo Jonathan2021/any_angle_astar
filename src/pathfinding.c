@@ -181,15 +181,15 @@ static void init_mat_point(int height, int width)
     //printf("exiting init_mat_point\n");
 }
 
-int line_of_sight(struct map *map, int parent_y, int parent_x, int y, int x)
+int line_of_sight(struct map *map, float parent_y, float parent_x, float y, float x)
 {
-    int old_x = parent_x;
-    int old_y = parent_y;
+    float old_x = parent_x;
+    float old_y = parent_y;
     printf("entering line_of_sight\n");
-    int sy, sx;
-    int dy = y - parent_y;
-    int dx = x - parent_x;
-    int f = 0;
+    float sy, sx;
+    float dy = y - parent_y;
+    float dx = x - parent_x;
+    float f = 0;
     if (dy < 0)
     {
         dy *= -1;
@@ -242,7 +242,7 @@ int line_of_sight(struct map *map, int parent_y, int parent_x, int y, int x)
             parent_y += sy;   
         }
     }
-    printf("yay there is a line of sight between %d %d and %d %d\n", old_y, old_x, y, x);
+    printf("yay there is a line of sight between %.1f %.1f and %.1f %.1f\n", old_y, old_x, y, x);
     return 1;
 }
 /*
@@ -274,7 +274,9 @@ void ComputeCost(struct map *map, int old_y, int old_x, int y, int x)
     struct point par = mat_point[old_y][old_x];
     printf("old_y %.0f old_x %.0f\n", par.parent_y, par.parent_x);
     struct point gp = mat_point[(int)par.parent_y][(int)par.parent_x];
-    if (line_of_sight(map, par.parent_y, par.parent_x, y, x))
+    if (line_of_sight(map, par.parent_y, par.parent_x, y, x)\
+        && line_of_sight(map, par.parent_y, par.parent_x, y + 1, x + 1)
+        && line_of_sight(map, par.parent_y + 1, par.parent_x + 1, y, x))
     {
         printf("entering first if\n");
         new_g = (gp.g + get_c((int)par.parent_y, (int)par.parent_x, y, x));
@@ -315,12 +317,13 @@ static void get_path(struct vector *path, int row, int col)
     while(!(mat_point[row][col].parent_y == row && \
                 mat_point[row][col].parent_x == col))
     {
-        path = vector_insert(path, 0, make_vec2(row, col));
+        path = vector_insert(path, 0, make_vec2((float)(row) + 0.5, (float)(col) + 0.5));
         printf("exiting make_vec2\n");
         row_tmp = mat_point[row][col].parent_y;
         col = mat_point[row][col].parent_x;
         row = row_tmp;
     }
+    path = vector_insert(path, 0, make_vec2(row, col));
     printf("exiting get_path\n");
 }
 /*explore point mat_point[row][col] next to mat_point[row_static][col_static]

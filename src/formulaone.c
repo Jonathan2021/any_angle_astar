@@ -134,7 +134,7 @@ double speed_according_to_angle(struct car *car)
     double next_determinant = 
         fabs(get_determinant(&list_cp->data[pos+1],car,list_cp->data[pos]));
 
-
+    return 0;
     if (next_determinant < 0.03f)
         return 0.3f;
     if (next_determinant < 0.05f)
