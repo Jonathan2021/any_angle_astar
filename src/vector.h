@@ -61,4 +61,6 @@ struct vector *vector_insert(struct vector *v, size_t i, struct vector2 elt);
 */
 struct vector *vector_remove(struct vector *v, size_t i);
 
+struct vector *vector_remove_v2(struct vector *v, struct vector2 elt);
+
 #endif /* !VECTOR_H */

@@ -40,9 +40,11 @@ struct vector *vector_append(struct vector *v, struct vector2 elt)
 {
     if(!v)
         v = vector_init(8);
-    if(v->size == v->capacity)
+    if(!v->capacity)
+        v = vector_resize(v, 8);
+    if(v->size >= v->capacity)
     {
-            vector_resize(v, v->capacity*2);
+            vector_resize(v, v->size * 2);
     }
     v->data[v->size] = elt;
     v->size++;
@@ -50,14 +52,27 @@ struct vector *vector_append(struct vector *v, struct vector2 elt)
     
 }
 
+struct vector *vector_remove_v2(struct vector *v, struct vector2 elt)
+{
+    for(size_t i = 0; i < v->size; ++i)
+    {
+        if(v->data[i].y == elt.y && v->data[i].x == elt.x)
+        {
+            v = vector_remove(v, i);
+            return vector_remove_v2(v, elt);
+        }
+    }
+    return v;
+}
+
 void vector_print(const struct vector *v)
 {
     for(size_t i = 0; i < v->size; ++i)
     {
         if(i == v->size-1)
-            printf("(%.2f, %.2f)", v->data[i].x, v->data[i].y);
+            printf("(%.2f, %.2f)", v->data[i].y, v->data[i].x);
         else
-            printf("(%.2f, %.2f); ", v->data[i].x, v->data[i].y);
+            printf("(%.2f, %.2f); ", v->data[i].y, v->data[i].x);
     }
     putchar('\n');
 }
