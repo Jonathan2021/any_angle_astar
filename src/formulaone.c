@@ -140,6 +140,9 @@ double speed_according_to_angle(struct car *car)
 	return 0.05f;
     return 0;
 }
+
+enum move go_to_cp(struct car *car);
+
 int crash_test(struct car *car)
 {
     struct car *crash_car = car_clone(car);
@@ -154,7 +157,8 @@ int crash_test(struct car *car)
 		&& crash_car->position.y <= list_cp->data[pos].y + approx)
 		&& crash != 1)
     {
-	enum status car_status = car_move(crash_car,action(crash_car));
+	enum status car_status = car_move(crash_car,go_to_cp(crash_car));
+	printf("crash_car x = %f, y = %f\n", crash_car->position.x, crash_car->position.y);
 	if ( car_status == CRASH)
 	    crash = 1;
     }
