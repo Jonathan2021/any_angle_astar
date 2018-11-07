@@ -485,7 +485,7 @@ static void print_cell(char c)
     //printf("entering print_cell\n");
     if(c < 'a')
     {
-        printf("%s%c", KRED, c);
+        printf("%s%c%s", KRED, c, KWHT);
     }
     switch (c)
     {
@@ -493,13 +493,13 @@ static void print_cell(char c)
             printf("%s%c", KWHT, c);
             break;
         case 'g':
-            printf("%s%c", KGRN, c);
+            printf("%s%c%s", KGRN, c, KWHT);
             break;
         case 'b':
-            printf("%s%c", KBLU, c);
+            printf("%s%c%s", KBLU, c, KWHT);
             break;
         case 'f':
-            printf("%s%c", KYEL, c);
+            printf("%s%c%s", KYEL, c, KWHT);
             break;
     }
     //printf("exiting print_cell\n");
