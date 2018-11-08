@@ -13,6 +13,8 @@
 #define KMAG  "\x1B[35m"
 #define KCYN  "\x1B[36m"
 #define KWHT  "\x1B[37m"
+#define SCALE 3
+#define PORTION 2 
 
 /*je sais pas ce que je branle mdr*/
 static int map_width = 0;
@@ -22,6 +24,7 @@ static int goal = 0; //will be set to one when path is found
 //list of points to be opened
 static struct vector2 *finish = NULL; //first end point found
 static int **closed = NULL;
+static enum floortype **my_map = NULL;
 
 struct point
 {
@@ -37,20 +40,10 @@ struct point
 
 static struct point **mat_point = NULL;
 
-//initializes map_height and map_width
-static void get_width(struct map *map)
-{
-    //printf("entering get_width\n");
-    if(!map_width && !map_height)
-    {
-        map_width = map->width;
-        map_height = map->height;
-    }
-    //printf("exiting get_width\n");
-}
+
 
 //check if vector2 is inside map
-static int in_limit_vec(struct vector2 *v)
+/*static int in_limit_vec(struct vector2 *v)
 {
     //printf("entering in_limit_vec\n");
     if(!v)
@@ -58,6 +51,7 @@ static int in_limit_vec(struct vector2 *v)
     return ((v->x >= 0 && v->x < (float)map_width) && \
             (v->y >= 0 && v->y < (float)map_height));
 }
+*/
 
 //check if coords are inside map
 static int in_limit(int y, int x)
@@ -67,73 +61,69 @@ static int in_limit(int y, int x)
 }
 
 //get floortype of vector2
-static enum floortype floor_vect(struct map *map, struct vector2 *v)
+static enum floortype floor_vect(struct vector2 v)
 {
     //printf("entering floor_vect\n");
-    return map_get_floor(map, (int)v->x, (int)v->y);
+    return my_map[(int)v.y][(int)v.x];
 }
 
 // return true if vector2 is a BLOCK floortype
-static int blocked_vec(struct map *map, struct vector2 *v)
+static int blocked_vec(struct vector2 v)
 {
     //printf("entering blocked_vec\n");
-    enum floortype floor = floor_vect(map, v);
+    enum floortype floor = floor_vect(v);
     //printf("exiting floor_vect\n");
     return (floor == BLOCK /*|| floor == GRASS*/);
 }
 
 // return true if coords is BLOCK floortype
-static int blocked(struct map *map, int row, int col)
+static int blocked(int row, int col)
 {
     //printf("entering blocked\n");
-    enum floortype floor = map_get_floor(map, col, row);
+    enum floortype floor = my_map[row][col];
     return(floor == BLOCK /*|| floor == GRASS*/);
 }
 
-static int squeezed(struct map *map, int old_row, int old_col, int row, int col)
+static int squeezed(int old_row, int old_col, int row, int col)
 {
     int col_diff = col - old_col;
     int row_diff = row - old_row;
-    return (blocked(map, old_row, old_col + col_diff) && \
-    blocked(map, old_row + row_diff, old_col));
+    return (blocked(old_row, old_col + col_diff) && \
+    blocked(old_row + row_diff, old_col));
 }
 
 // return true if vector2 is FINISH BLOCK
-static int arrived_vec(struct map *map, struct vector2 *v)
+static int arrived_vec(struct vector2 v)
 {
     //printf("entering arrived_vec\n");
-    return (floor_vect(map, v) == FINISH);
+    return (floor_vect(v) == FINISH);
 }
 
 // return true if coords is FINISH BLOCK
-static int arrived(struct map *map, int row, int col)
+static int arrived(int row, int col)
 {
     //printf("entering arrived\n");
-    return (map_get_floor(map, col, row) == FINISH);
+    return (my_map[row][col] == FINISH);
 }
 
 //Finds vector2 with floortype FINISH in map
-//FIXME find closest finish instead of first one
-static void find_finish(struct map *map)
+static void find_finish()
 {
+    if(finish)
+        return;
     //printf("entering find_finish\n");
-    if(!finish)
+    for(int i = 0; i < map_height; ++i)
     {
-        finish = malloc(sizeof(struct vector2));
-        finish->x = -1;
-        finish->y = -1;
-        for(int i = 0; i < map_height; ++i)
+        for(int j = 0; j < map_width; ++j)
         {
-            for(int j = 0; j < map_width; ++j)
+            if(my_map[i][j] == FINISH)
             {
-                if(map_get_floor(map, j, i) == FINISH)
-                {
-                    finish->y = i;
-                    finish->x = j;
-                    break;
-                }
+                finish = malloc(sizeof(struct vector2));
+                finish->y = i;
+                finish->x = j;
+                break;
             }
-        }
+         }
     }
     //printf("exiting find_finish\n");
 }
@@ -181,7 +171,7 @@ static void init_mat_point(int height, int width)
     //printf("exiting init_mat_point\n");
 }
 
-int line_of_sight(struct map *map, float parent_y, float parent_x, float y, float x)
+int line_of_sight(float parent_y, float parent_x, float y, float x)
 {
     float old_x = parent_x;
     float old_y = parent_y;
@@ -211,14 +201,14 @@ int line_of_sight(struct map *map, float parent_y, float parent_x, float y, floa
             f = f + dy;
             if (f >= dx)
             {
-                if (blocked(map, parent_y + ((sy - 1) / 2), parent_x + ((sx - 1) / 2)))
+                if (blocked(parent_y + ((sy - 1) / 2), parent_x + ((sx - 1) / 2)))
                     return 0;
                 parent_y = parent_y + sy;
                 f = f - dx;
             }
-            if (f != 0 && blocked(map, parent_y + ((sy - 1) / 2), parent_x + ((sx - 1) / 2)))
+            if (f != 0 && blocked(parent_y + ((sy - 1) / 2), parent_x + ((sx - 1) / 2)))
                 return 0;
-            if (!dy && blocked(map, parent_y, parent_x + ((sx - 1) / 2)) && blocked(map, parent_y - 1, parent_x + ((sx - 1) / 2)))
+            if (!dy && blocked(parent_y, parent_x + ((sx - 1) / 2)) && blocked(parent_y - 1, parent_x + ((sx - 1) / 2)))
                 return 0;
             parent_x += sx;
         }
@@ -230,14 +220,14 @@ int line_of_sight(struct map *map, float parent_y, float parent_x, float y, floa
             f = f + dx;
             if (f >= dy)
             {
-                if (blocked(map, parent_y + ((sy - 1) / 2), parent_x + ((sx - 1) / 2)))
+                if (blocked(parent_y + ((sy - 1) / 2), parent_x + ((sx - 1) / 2)))
                     return 0;
                 parent_x += sx;
                 f = f - dy;
             }
-            if (f != 0 && blocked(map, parent_y + ((sy - 1) / 2), parent_x + ((sx - 1) / 2)))
+            if (f != 0 && blocked(parent_y + ((sy - 1) / 2), parent_x + ((sx - 1) / 2)))
                 return 0;
-            if (!dx && blocked(map, parent_y + ((sy - 1) / 2), parent_x) && blocked(map, parent_y + ((sy - 1) / 2), parent_x - 1))
+            if (!dx && blocked(parent_y + ((sy - 1) / 2), parent_x) && blocked(parent_y + ((sy - 1) / 2), parent_x - 1))
                 return 0;
             parent_y += sy;   
         }
@@ -267,16 +257,14 @@ static double get_c(int row, int col, int finish_x, int finish_y)
                 (col - finish_x)*(col - finish_x)));
 }
 
-void ComputeCost(struct map *map, int old_y, int old_x, int y, int x)
+void ComputeCost(int old_y, int old_x, int y, int x)
 {
     printf("entering ComputeCost\n");
     double new_g;
     struct point par = mat_point[old_y][old_x];
     printf("old_y %.0f old_x %.0f\n", par.parent_y, par.parent_x);
     struct point gp = mat_point[(int)par.parent_y][(int)par.parent_x];
-    if (line_of_sight(map, par.parent_y, par.parent_x, y, x)\
-        && line_of_sight(map, par.parent_y, par.parent_x, y + 1, x + 1)
-        && line_of_sight(map, par.parent_y + 1, par.parent_x + 1, y, x))
+    if (line_of_sight(par.parent_y, par.parent_x, y, x))
     {
         printf("entering first if\n");
         new_g = (gp.g + get_c((int)par.parent_y, (int)par.parent_x, y, x));
@@ -317,37 +305,36 @@ static void get_path(struct vector *path, int row, int col)
     while(!(mat_point[row][col].parent_y == row && \
                 mat_point[row][col].parent_x == col))
     {
-        path = vector_insert(path, 0, make_vec2((float)(row) + 0.5, (float)(col) + 0.5));
+        path = vector_insert(path, 0, make_vec2((float)(row) / SCALE, (float)(col) / SCALE));
         printf("exiting make_vec2\n");
         row_tmp = mat_point[row][col].parent_y;
         col = mat_point[row][col].parent_x;
         row = row_tmp;
     }
-    path = vector_insert(path, 0, make_vec2(row, col));
+    //path = vector_insert(path, 0, make_vec2(row, col));
     printf("exiting get_path\n");
 }
 /*explore point mat_point[row][col] next to mat_point[row_static][col_static]
   and finds end or modifies f, g, h values if needed*/
-static void explore(struct vector *path, 
-    struct map *map, int row, int col, struct vector *open)
+static void explore(struct vector *path, int row, int col, struct vector *open)
 {
     printf("entering explore\n");
     if(goal)
         return;
-    if(in_limit(row, col) && !squeezed(map, row_static, col_static, row, col))
+    if(in_limit(row, col) && !squeezed(row_static, col_static, row, col))
     {
-        if(arrived(map, row, col)) //we reached end point
+        if(arrived(row, col)) //we reached end point
         {
             printf("arrived %d %d\n", row, col);
-            ComputeCost(map, row_static, col_static, row, col);
+            ComputeCost(row_static, col_static, row, col);
             get_path(path, row, col); //trace back path
             goal = 1; //YAY we arrived at the finish line
             return;
         }
 
-        if (!closed[row][col] && !blocked(map, row, col)) //not a block 
+        if (!closed[row][col] && !blocked(row, col)) //not a block 
         {                                            //and not explored 
-            ComputeCost(map, row_static, col_static, row, col);
+            ComputeCost(row_static, col_static, row, col);
             double new_h = get_c(row, col, (int)finish->y, (int)finish->x);
             printf("exiting get_h\n");
             printf("%d %d\n", row, col);
@@ -370,19 +357,55 @@ static void explore(struct vector *path,
 }
 
 //explore all 8 directions
-static void explore_all(struct vector *path, struct map *map, 
-    struct vector *open)
+static void explore_all(struct vector *path, struct vector *open)
 {
     printf("entering explore_all\n");
-    explore(path, map, row_static - 1, col_static, open); //above
-    explore(path, map, row_static + 1, col_static, open); //under
-    explore(path, map, row_static, col_static - 1, open); //left
-    explore(path, map, row_static, col_static + 1, open); //right
-    explore(path, map, row_static - 1, col_static - 1, open); //upper-left
-    explore(path, map, row_static - 1, col_static + 1, open); //upper-right
-    explore(path, map, row_static + 1, col_static - 1, open); //lower-left
-    explore(path, map, row_static + 1, col_static + 1, open); //lower-right
+    explore(path, row_static - 1, col_static, open); //above
+    explore(path, row_static + 1, col_static, open); //under
+    explore(path, row_static, col_static - 1, open); //left
+    explore(path, row_static, col_static + 1, open); //right
+    explore(path, row_static - 1, col_static - 1, open); //upper-left
+    explore(path, row_static - 1, col_static + 1, open); //upper-right
+    explore(path, row_static + 1, col_static - 1, open); //lower-left
+    explore(path, row_static + 1, col_static + 1, open); //lower-right
     printf("exiting explore_all\n");
+}
+
+void contour(int y, int x)
+{
+    int marge = SCALE / PORTION;
+    for (int i = y - marge; i < y + SCALE + marge; ++i)
+    {
+        for(int j = x - marge; j < x + SCALE + marge; ++j)
+        {
+            if(in_limit(i, j))
+            {
+                my_map[i][j] = BLOCK;
+            }
+        }
+
+    }
+}
+
+void fill_my_map(struct map *map, int height, int width)
+{
+    for(int i = 0; i < height; ++i)
+    {
+        for(int j = 0; j < width; ++j)
+        {
+            my_map[i][j] = map_get_floor(map, j / SCALE, i / SCALE);
+        }
+    }
+    for(int i = 0; i < map->height; ++i)
+    {
+        for(int j = 0; j < map->width; ++j)
+        {
+            if(map_get_floor(map, j, i) == BLOCK)
+            {
+                contour(i * SCALE, j * SCALE);
+            }
+        }
+    }
 }
 
 //initializing some static variables
@@ -396,6 +419,7 @@ static void init_static()
         closed[i] = malloc(map_width * sizeof(int));
         mat_point[i] = malloc(map_width * sizeof(struct point));
     }
+   
     zero_fill(closed, map_height, map_width); 
     init_mat_point(map_height, map_width);
     printf("exiting init_static\n");
@@ -408,12 +432,31 @@ static void free_all(struct vector *open)
     {
         free(closed[i]);
         free(mat_point[i]);
+        free(my_map[i]);
     }
+    free(my_map);
     free(closed);
     free(mat_point);
     free(finish);
     vector_destroy(open);
     printf("exiting free_all\n");
+}
+
+//initializes map_height and map_width
+static void get_real_map(struct map *map)
+{
+    //printf("entering get_width\n");
+    if(!my_map)
+    {
+        map_width = map->width * SCALE;
+        map_height = map->height * SCALE;
+        my_map = malloc(map_height * sizeof(enum floortype *));
+        for (int i = 0; i < map_height ; ++i)
+            my_map[i] = malloc(map_width * sizeof(enum floortype));
+        fill_my_map(map, map_height , map_width);
+
+    }
+    //printf("exiting get_width\n");
 }
 /*
 static int is_checkpoint(int y, int x, struct vector *path)
@@ -426,7 +469,25 @@ static int is_checkpoint(int y, int x, struct vector *path)
     return 0;
 }
 */
-
+/*
+static char quick_char(enum floortype floor)
+{
+    //printf("entering floor_to_char\n");
+    switch (floor)
+    {
+        case ROAD:
+            return 'r';
+        case GRASS:
+            return 'g';
+        case BLOCK:
+            return 'b';
+        case FINISH:
+            return 'f';
+    }
+    return 0;
+    //printf("exiting floor_to_char\n");
+}
+*/
 static char floor_to_char(int y, int x, struct map *map)
 {
     //printf("entering floor_to_char\n");
@@ -449,13 +510,13 @@ static char **create_matrix(struct vector *path, struct map *map)
 {
     //printf("entering create_matrix\n");
     char **mat = malloc(map->height * sizeof(char *));
-    for(int i = 0; i < map_height; ++i)
+    for(int i = 0; i < map->height; ++i)
     {
-        mat[i] = malloc(map_width * sizeof(char));
+        mat[i] = malloc(map->width * sizeof(char));
     }
-    for(int i = 0; i < map_height; ++i)
+    for(int i = 0; i < map->height; ++i)
     {
-        for(int j = 0; j < map_width; ++j)
+        for(int j = 0; j < map->width; ++j)
         {
             mat[i][j] = floor_to_char(i, j, map);
         }
@@ -521,26 +582,29 @@ static void print_map(struct vector *path, struct map *map)
     //printf("exiting print_map\n");
 }
 
-/* A* path finding algorithm on map
-   FIXME modify me to become Theta* any-angle algorithm to reduce actions*/
+struct vector2 get_start(struct map *map)
+{
+    struct vector2 start; //starting point
+    start.x = map_get_start_x(map) * SCALE;
+    start.y = map_get_start_y(map) * SCALE;
+    return start;
+
+}
+// A* path finding algorithm on map
 struct vector *find_path(struct map *map)
 {
     printf("entering findpath\n");
-    get_width(map); //initialize static map_width and map_height
-
+    get_real_map(map); //initialize static map_width and map_height
+    struct vector2 start = get_start(map);
     struct vector *path = vector_init(8);
-    struct vector2 start; //starting point
-    start.x = map_get_start_x(map);
-    start.y = map_get_start_y(map);
-
-    find_finish(map); //set static vector2 finish variable;
-    if(finish)
+    
+    find_finish(); //set static vector2 finish variable;
+    if(!finish)
     {
-        printf("finish is %d %d\n", (int)finish->y, (int)finish->x);
+        printf("no finish");
     }
     //if initial conditions don't make sense
-    if(!in_limit_vec(&start) || !in_limit_vec(finish) || blocked_vec(map, \
-                &start) || blocked_vec(map, finish) || arrived_vec(map, &start))
+    if(blocked_vec(start) || blocked_vec(*finish) || arrived_vec(start))
     {
         printf("exiting in_limit_vec false * 2, blocked true * 2, arrived_vec true\n");
         goto fail_init; //frees memory and returns NULL(path didn't change);
@@ -564,7 +628,7 @@ struct vector *find_path(struct map *map)
         open = vector_remove(open, 0); //removing it
         row_static = cur.y, col_static = cur.x; //updating static coordinates
         closed[row_static][col_static] = 1; //explored
-        explore_all(path, map, open);
+        explore_all(path, open);
         if(goal)
         {
             break;
