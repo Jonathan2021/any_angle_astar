@@ -25,6 +25,7 @@ static int goal = 0; //will be set to one when path is found
 static struct vector2 *finish = NULL; //first end point found
 static int **closed = NULL;
 static enum floortype **my_map = NULL;
+//static struct vector **list_p = NULL;
 
 struct point
 {
@@ -234,11 +235,6 @@ int line_of_sight(float parent_y, float parent_x, float y, float x)
     }
     printf("yay there is a line of sight between %.1f %.1f and %.1f %.1f\n", old_y, old_x, y, x);
     return 1;
-}
-
-int line_of_sight_v2(struct vector2 parent, struct vector2 current)
-{
-    return line_of_sight(parent.y * SCALE, parent.x * SCALE, current.y * SCALE, current.x * SCALE);
 }
 /*
 struct point parent(struct point p)
@@ -595,28 +591,6 @@ struct vector2 get_start(struct map *map)
     return start;
 
 }
-
-void clean_path(struct vector *path)
-{
-    if(!path->size)
-        return;
-    for(size_t i = 0; i < path->size; ++i)
-    {
-        for(size_t j = path->size - 1; j > i + 1; --j)
-        {
-            printf("checking between %lu and %lu index\n", i, j);
-            if(line_of_sight_v2(path->data[i], path->data[j]))
-            {
-                printf("I changed something\n");
-                for(size_t k = 1; k < j - i; ++k)
-                {
-                    path = vector_remove(path, i + 1);
-                }
-                break;
-            }
-        }
-    }
-}
 // A* path finding algorithm on map
 struct vector *find_path(struct map *map)
 {
@@ -665,7 +639,6 @@ struct vector *find_path(struct map *map)
         printf("goal found !!!!!!!!!!!!!!!!!!!!!!!!!!\n");
     else
         printf("no goal lol\n");
-    clean_path(path);
     print_map(path, map);
 
 fail_init: //free allocated stuff and return the path(NULL if not found)
