@@ -25,7 +25,8 @@ static int goal = 0; //will be set to one when path is found
 static struct vector2 *finish = NULL; //first end point found
 static int **closed = NULL;
 static enum floortype **my_map = NULL;
-//static struct vector **list_p = NULL;
+static struct vector **list_p = NULL;
+static size_t list_size = 0;
 
 struct point
 {
@@ -295,14 +296,13 @@ void ComputeCost(int old_y, int old_x, int y, int x)
 /*Builds path vector in correct order
   doesn't include starting coords because they could be float but path vect
   only has rounded numbers*/
-static void get_path(struct vector *path, int row, int col)
+static void get_path(int row, int col)
 {
     printf("entering get_path\n");
     int row_tmp;
-    if(!path)
-    {
-        path = vector_init(8);
-    }
+    list_size++;
+    list_p = realloc(list_p, list_size * sizeof(struct vector *));
+    struct vector *path = vector_init(8);
     while(!(mat_point[row][col].parent_y == row && \
                 mat_point[row][col].parent_x == col))
     {
@@ -313,23 +313,24 @@ static void get_path(struct vector *path, int row, int col)
         row = row_tmp;
     }
     //path = vector_insert(path, 0, make_vec2(row, col));
+    list_p[list_size - 1] = path;
     printf("exiting get_path\n");
 }
 /*explore point mat_point[row][col] next to mat_point[row_static][col_static]
   and finds end or modifies f, g, h values if needed*/
-static void explore(struct vector *path, int row, int col, struct vector *open)
+static void explore(int row, int col, struct vector *open)
 {
     printf("entering explore\n");
-    if(goal)
-        return;
+    //if(goal)
+    //    return;
     if(in_limit(row, col) && !squeezed(row_static, col_static, row, col))
     {
         if(arrived(row, col)) //we reached end point
         {
             printf("arrived %d %d\n", row, col);
             ComputeCost(row_static, col_static, row, col);
-            get_path(path, row, col); //trace back path
-            goal = 1; //YAY we arrived at the finish line
+            get_path(row, col); //trace back path
+            //goal = 1; //YAY we arrived at the finish line
             return;
         }
 
@@ -358,17 +359,17 @@ static void explore(struct vector *path, int row, int col, struct vector *open)
 }
 
 //explore all 8 directions
-static void explore_all(struct vector *path, struct vector *open)
+static void explore_all(struct vector *open)
 {
     printf("entering explore_all\n");
-    explore(path, row_static - 1, col_static, open); //above
-    explore(path, row_static + 1, col_static, open); //under
-    explore(path, row_static, col_static - 1, open); //left
-    explore(path, row_static, col_static + 1, open); //right
-    explore(path, row_static - 1, col_static - 1, open); //upper-left
-    explore(path, row_static - 1, col_static + 1, open); //upper-right
-    explore(path, row_static + 1, col_static - 1, open); //lower-left
-    explore(path, row_static + 1, col_static + 1, open); //lower-right
+    explore(row_static - 1, col_static, open); //above
+    explore(row_static + 1, col_static, open); //under
+    explore(row_static, col_static - 1, open); //left
+    explore(row_static, col_static + 1, open); //right
+    explore(row_static - 1, col_static - 1, open); //upper-left
+    explore(row_static - 1, col_static + 1, open); //upper-right
+    explore(row_static + 1, col_static - 1, open); //lower-left
+    explore(row_static + 1, col_static + 1, open); //lower-right
     printf("exiting explore_all\n");
 }
 
@@ -426,7 +427,7 @@ static void init_static()
     printf("exiting init_static\n");
 }
 
-static void free_all(struct vector *open)
+static void free_all(struct vector *open, struct vector *path)
 {
     printf("entering free_all\n");
     for(int i = 0; i < map_height; ++i)
@@ -435,6 +436,13 @@ static void free_all(struct vector *open)
         free(mat_point[i]);
         free(my_map[i]);
     }
+    for(size_t i = 0; i < list_size; ++i)
+    {
+        if(list_p[i] == path)
+            continue;
+        free(list_p[i]);
+    }
+    free(list_p);
     free(my_map);
     free(closed);
     free(mat_point);
@@ -591,13 +599,31 @@ struct vector2 get_start(struct map *map)
     return start;
 
 }
+
+struct vector *get_smallest_path()
+{
+    if(!list_p)
+    {
+        return vector_init(8);
+    }
+    struct vector *res = list_p[0];
+    for(size_t i = 1; i < list_size; ++i)
+    {
+        printf("size %lu ", list_p[i]->size);
+        if (list_p[i]->size < res->size)
+            res = list_p[i];
+    }
+    printf("\n");
+    return res;
+}
+
 // A* path finding algorithm on map
 struct vector *find_path(struct map *map)
 {
     printf("entering findpath\n");
     get_real_map(map); //initialize static map_width and map_height
     struct vector2 start = get_start(map);
-    struct vector *path = vector_init(8);
+    //struct vector *path = vector_init(8);
     
     find_finish(); //set static vector2 finish variable;
     if(!finish)
@@ -629,20 +655,22 @@ struct vector *find_path(struct map *map)
         open = vector_remove(open, 0); //removing it
         row_static = cur.y, col_static = cur.x; //updating static coordinates
         closed[row_static][col_static] = 1; //explored
-        explore_all(path, open);
-        if(goal)
-        {
-            break;
-        }
+        explore_all(open);
+        //if(goal)
+        //{
+        //    break;
+        //}
     }
     if(goal)
         printf("goal found !!!!!!!!!!!!!!!!!!!!!!!!!!\n");
     else
         printf("no goal lol\n");
-    print_map(path, map);
+    struct vector *path = get_smallest_path();
+    print_map(list_p[8], map);
+    printf("there was %lu paths\n", list_size);
 
 fail_init: //free allocated stuff and return the path(NULL if not found)
-    free_all(open);
+    free_all(open, path);
     if(path)
     {
         printf("path found\n");
