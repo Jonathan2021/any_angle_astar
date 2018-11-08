@@ -98,7 +98,7 @@ enum move action (struct car *car)
 	    return ACCELERATE_AND_TURN_RIGHT;
 	return ACCELERATE_AND_TURN_LEFT;
     } 
-    if (diff < 5 && determinant < 0.3f && determinant > -0.3f)
+    if (diff < 10 && determinant < 0.3f && determinant > -0.3f)
     {
 	if (determinant <= 0)
 	    return TURN_RIGHT;
@@ -129,7 +129,7 @@ double speed_according_to_angle(struct car *car)
 {
     double next_determinant = 
 	fabs(get_determinant(&list_cp->data[pos+1],car,list_cp->data[pos]));
-    return 0;
+    return 0; 
     if (next_determinant < 0.03f)
 	return 0.3f;
     if (next_determinant < 0.05f)
@@ -149,8 +149,8 @@ int crash_test(struct car *car)
     pos += 1;
     int crash = 0;
     double approx = (fabs(crash_car->speed.x) + fabs(crash_car->speed.y));
-    if (approx < 0.2f)
-	approx = 0.2f;
+    if (approx < 0.25f)
+	approx = 0.25f;
     while (!(crash_car->position.x >= list_cp->data[pos].x - approx 
 		&& crash_car->position.x <= list_cp->data[pos].x + approx
 		&& crash_car->position.y >= list_cp->data[pos].y - approx 
@@ -158,8 +158,9 @@ int crash_test(struct car *car)
 		&& crash != 1)
     {
 	enum status car_status = car_move(crash_car,go_to_cp(crash_car));
-	printf("crash_car x = %f, y = %f\n", crash_car->position.x, crash_car->position.y);
-	if ( car_status == CRASH)
+	printf("crash_car x = %f, y = %f\n", 
+                crash_car->position.x, crash_car->position.y);
+	if (car_status == CRASH)
 	    crash = 1;
     }
 
@@ -180,7 +181,8 @@ int block_btw(struct car *car)
     {
 	if (!crash_test(car))
 	    return 0;
-	if (map_get_floor(car->map, list_cp->data[pos].x, list_cp->data[pos].y + 1) == BLOCK)
+	if (map_get_floor(car->map, list_cp->data[pos].x, 
+                    list_cp->data[pos].y + 1) == BLOCK)
 	    list_cp->data[pos].x += 1;
 	else
 	    list_cp->data[pos].y += 1;
@@ -190,7 +192,8 @@ int block_btw(struct car *car)
     {
 	if (!crash_test(car))
 	    return 0;
-	if (map_get_floor(car->map, list_cp->data[pos].x, list_cp->data[pos].y - 1) == BLOCK)
+	if (map_get_floor(car->map, 
+                    list_cp->data[pos].x, list_cp->data[pos].y - 1) == BLOCK)
 	    list_cp->data[pos].x += 1;
 	else
 	    list_cp->data[pos].y -= 1;
@@ -200,7 +203,8 @@ int block_btw(struct car *car)
     {
 	if (!crash_test(car))
 	    return 0;
-	if (map_get_floor(car->map, list_cp->data[pos].x, list_cp->data[pos].y + 1) == BLOCK)
+	if (map_get_floor(car->map, 
+                    list_cp->data[pos].x, list_cp->data[pos].y + 1) == BLOCK)
 	    list_cp->data[pos].x -= 1;
 	else
 	    list_cp->data[pos].y += 1; 
@@ -210,7 +214,8 @@ int block_btw(struct car *car)
     {
 	if (!crash_test(car))
 	    return 0;
-	if (map_get_floor(car->map, list_cp->data[pos].x, list_cp->data[pos].y - 1) == BLOCK)
+	if (map_get_floor(car->map, 
+                    list_cp->data[pos].x, list_cp->data[pos].y - 1) == BLOCK)
 	    list_cp->data[pos].x -= 1;
 	else
 	    list_cp->data[pos].y -= 1;
@@ -225,8 +230,8 @@ enum move go_to_cp(struct car *car)
     {
 	double speed = speed_according_to_angle(car);
 	double approx = (fabs(car->speed.x) + fabs(car->speed.y));
-	if (approx < 0.2f)
-	    approx = 0.2f;
+	if (approx < 0.25f)
+	    approx = 0.25f;
 	struct vector2 *pos_stop = brake_to_speed(car, speed);
 	if (pos_stop->x >= list_cp->data[pos].x - approx 
 		&& pos_stop->x <= list_cp->data[pos].x + approx
