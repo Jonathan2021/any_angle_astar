@@ -14,7 +14,7 @@
 #define KCYN  "\x1B[36m"
 #define KWHT  "\x1B[37m"
 #define SCALE 5
-#define PORTION 3 
+#define PORTION 2 
 
 static int map_width = 0;
 static int map_height = 0;
