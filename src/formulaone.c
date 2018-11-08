@@ -6,7 +6,7 @@
 #include "pathfinding.h"
 
 static struct vector *list_cp = NULL;
-static size_t pos = 1;
+static size_t pos = 0;
 
 int square (int x)
 {

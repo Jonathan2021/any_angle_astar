@@ -25,6 +25,7 @@ static int goal = 0; //will be set to one when path is found
 static struct vector2 *finish = NULL; //first end point found
 static int **closed = NULL;
 static enum floortype **my_map = NULL;
+//static struct vector **list_p = NULL;
 
 struct point
 {
