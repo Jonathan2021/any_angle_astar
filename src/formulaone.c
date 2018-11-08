@@ -143,10 +143,9 @@ double speed_according_to_angle(struct car *car)
 
 enum move go_to_cp(struct car *car);
 
-int crash_test(struct car *car)
+int crash_test(struct car *car, size_t real_pos)
 {
     struct car *crash_car = car_clone(car);
-    pos += 1;
     int crash = 0;
     double approx = (fabs(crash_car->speed.x) + fabs(crash_car->speed.y));
     if (approx < 0.25f)
@@ -165,65 +164,16 @@ int crash_test(struct car *car)
     }
 
     car_delete(crash_car);
-    pos -= 1;
     printf("crash = %d\n\n\n", crash);
-    if (crash == 1)
-	return 1;
-    else
-	return 0;
-}
-int block_btw(struct car *car)
-{
-    int block = 1;
-    
-    if (list_cp->data[pos + 1].x == list_cp->data[pos].x + 1 
-	    && list_cp->data[pos + 1].y == list_cp->data[pos].y + 1)
+    if (crash == 1 && pos > real_pos)
     {
-	if (!crash_test(car))
-	    return 0;
-	if (map_get_floor(car->map, list_cp->data[pos].x, 
-                    list_cp->data[pos].y + 1) == BLOCK)
-	    list_cp->data[pos].x += 1;
-	else
-	    list_cp->data[pos].y += 1;
-    }
-    else if (list_cp->data[pos + 1].x == list_cp->data[pos].x + 1 
-	    && list_cp->data[pos + 1].y == list_cp->data[pos].y - 1)
-    {
-	if (!crash_test(car))
-	    return 0;
-	if (map_get_floor(car->map, 
-                    list_cp->data[pos].x, list_cp->data[pos].y - 1) == BLOCK)
-	    list_cp->data[pos].x += 1;
-	else
-	    list_cp->data[pos].y -= 1;
-    }
-    else if (list_cp->data[pos + 1].x == list_cp->data[pos].x - 1 
-	    && list_cp->data[pos + 1].y == list_cp->data[pos].y + 1)
-    {
-	if (!crash_test(car))
-	    return 0;
-	if (map_get_floor(car->map, 
-                    list_cp->data[pos].x, list_cp->data[pos].y + 1) == BLOCK)
-	    list_cp->data[pos].x -= 1;
-	else
-	    list_cp->data[pos].y += 1; 
-    }
-    else if (list_cp->data[pos + 1].x == list_cp->data[pos].x - 1 
-	    && list_cp->data[pos + 1].y == list_cp->data[pos].y - 1)
-    {
-	if (!crash_test(car))
-	    return 0;
-	if (map_get_floor(car->map, 
-                    list_cp->data[pos].x, list_cp->data[pos].y - 1) == BLOCK)
-	    list_cp->data[pos].x -= 1;
-	else
-	    list_cp->data[pos].y -= 1;
+	pos--;
+	return crash_test(car,real_pos);
     }
     else
-	block = 0;
-    return block;
+	return pos;
 }
+
 enum move go_to_cp(struct car *car)
 {
     if (pos < list_cp->size - 1)
@@ -241,8 +191,13 @@ enum move go_to_cp(struct car *car)
 	{
 	    if (fabs(fmax(car->speed.x,car->speed.y)) <= speed)
 	    {	
-		int block = block_btw(car);
-		if (pos < list_cp->size - 1 && !block)
+		size_t save_pos = pos;
+		if (pos + 5 > list_cp->size - 2)
+		    pos = list_cp->size-2;
+		else
+		    pos += 5;
+		crash_test(car, save_pos);
+		if (pos == save_pos && pos < list_cp->size-1)
 		    pos++;
 
 		printf("supposed pos x = %f y = %f", list_cp->data[pos-1].x,
