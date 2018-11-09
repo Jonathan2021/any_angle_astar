@@ -3,13 +3,11 @@
 static struct vector *list_cp = NULL;
 static size_t pos = 0;
 
-double
-square(double x)
+double square(double x)
 {
     return x * x;
 }
-struct vector2 *
-normalize_vec(struct vector2 vec)
+struct vector2 *normalize_vec(struct vector2 vec)
 {
     struct vector2 *res = vector2_new();
     double div = (sqrt(square(vec.x) + square(vec.y)));
@@ -20,8 +18,7 @@ normalize_vec(struct vector2 vec)
     return res;
 }
 
-struct vector2 *
-create_vector(struct vector2 p1, struct vector2 *p2)
+struct vector2 *create_vector(struct vector2 p1, struct vector2 *p2)
 {
     struct vector2 *res = vector2_new();
     res->x = p2->x - p1.x;
@@ -30,57 +27,58 @@ create_vector(struct vector2 p1, struct vector2 *p2)
 }
 
 // à toi de mettre tes checkpoints !
-struct vector *
-create_checkpoint(struct car *car)
+struct vector *create_checkpoint(struct car *car)
 {
     struct vector *path = find_path(car->map);
     return path;
 }
 
-double
-get_angle(struct vector2 car, struct vector2 *cp)
+double get_angle(struct vector2 car, struct vector2 *cp)
 {
-    struct vector2 *check_point = cp;
 
     struct vector2 *triangle_rec = vector2_new();
     triangle_rec->x = car.x;
-    triangle_rec->y = check_point->y;
+    triangle_rec->y = cp->y;
 
-    float oppose = sqrt(pow((triangle_rec->x - check_point->x), 2)
-                        + pow((triangle_rec->y - check_point->y), 2));
+    float oppose = sqrt(pow((triangle_rec->x - cp->x), 2)
+                        + pow((triangle_rec->y - cp->y), 2));
     float hypotenus = sqrt(
-        pow((check_point->x - car.x), 2) + pow((check_point->y - car.y), 2));
+        pow((cp->x - car.x), 2) + pow((cp->y - car.y), 2));
 
     float sin = oppose / hypotenus;
 
     double angle = asin(sin) * 180 / M_PI;
-
+    vector2_delete(triangle_rec);
     return angle;
 }
 
-double
-get_determinant(
-    struct vector2 *checkpoint, struct car *car, struct vector2 car_pos)
+double get_determinant(struct vector2 *checkpoint,
+        struct car *car, struct vector2 car_pos)
 {
     struct vector2 *car_direction = normalize_vec(car->direction);
     struct vector2 *path = normalize_vec(*create_vector(car_pos, checkpoint));
     double determinant
         = path->x * car_direction->y - car_direction->x * path->y;
-
+    
+    vector2_delete(car_direction);
+    vector2_delete(path);
     return determinant;
 }
 
-enum move
-action(struct car *car)
+enum move action(struct car *car)
 {
-    struct vector2 checkpoint = list_cp->data[pos];
-    double determinant = get_determinant(&checkpoint, car, car->position);
-    double angle = get_angle(car->position, &checkpoint);
+    struct vector2 *checkpoint = vector2_new();
+    *checkpoint = list_cp->data[pos];
+    double determinant = get_determinant(checkpoint, car, car->position);
+    double angle = get_angle(car->position, checkpoint);
     double car_angle = asin(car->direction.x) * 180 / M_PI;
     double diff = fabs(fabs(car_angle) - fabs(angle));
 
     double car_turn_angle = (CAR_TURN_ANGLE)*180 / M_PI;
 
+    
+    vector2_delete(checkpoint);
+    
     if (diff <= car_turn_angle / 2 && determinant < 0.3f && determinant > -0.3f)
     {
         if (fmax(car->speed.x, car->speed.y) > 0.45f)
@@ -104,8 +102,7 @@ action(struct car *car)
     return BRAKE_AND_TURN_LEFT;
 }
 
-struct vector2 *
-brake_to_speed(struct car *car, double speed)
+struct vector2 *brake_to_speed(struct car *car, double speed)
 {
     struct car *save_car = car_clone(car);
     double car_speed = fmax(save_car->speed.x, save_car->speed.y);
@@ -121,8 +118,7 @@ brake_to_speed(struct car *car, double speed)
     return pos;
 }
 
-double
-speed_according_to_angle(struct car *car)
+double speed_according_to_angle(struct car *car)
 {
     double next_determinant = fabs(
         get_determinant(&list_cp->data[pos + 1], car, list_cp->data[pos]));
@@ -137,8 +133,7 @@ speed_according_to_angle(struct car *car)
     return 0;
 }
 
-int
-crash_test(struct car *car, size_t real_pos)
+int crash_test(struct car *car, size_t real_pos)
 {
     struct car *crash_car = car_clone(car);
     int crash = 0;
@@ -166,8 +161,7 @@ crash_test(struct car *car, size_t real_pos)
         return pos;
 }
 
-enum move
-go_to_cp(struct car *car)
+enum move go_to_cp(struct car *car)
 {
     if (pos < list_cp->size - 1)
     {
@@ -202,13 +196,16 @@ go_to_cp(struct car *car)
                     pos += 1;
             }
             else
+            {
+                vector2_delete(pos_stop);
                 return BRAKE;
+            }
         }
+        vector2_delete(pos_stop);
     }
     return action(car);
 }
-enum move
-update(struct car *car)
+enum move update(struct car *car)
 {
     if (list_cp == NULL)
         list_cp = create_checkpoint(car);

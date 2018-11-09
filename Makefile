@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -Werror -std=c99 -pedantic -g
+CFLAGS=-Wall -Wextra -Werror -std=c99 -pedantic
 
 OBJS=src/formulaone.o src/pathfinding.o src/vector.o#FIXME: add your obj files here
 OBJS_CHECK=tests/check.o tests/utils.o
