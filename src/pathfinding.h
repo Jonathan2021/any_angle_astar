@@ -3,6 +3,7 @@
 #include "control.h"
 #include "vector.h"
 
-struct vector *find_path(struct map *map);
+struct vector *
+find_path(struct map *map);
 
 #endif /* !_PATH_H_ */
