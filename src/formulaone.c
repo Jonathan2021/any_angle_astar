@@ -8,7 +8,7 @@
 static struct vector *list_cp = NULL;
 static size_t pos = 0;
 
-int square (int x)
+double square (double x)
 {
     return x*x;
 }
@@ -88,11 +88,9 @@ enum move action (struct car *car)
 
     if (diff <= car_turn_angle/2 && determinant < 0.3f && determinant > -0.3f)
     {
-	if (car->speed.x > 0.45f || car->speed.y > 0.45f)
-	    return DO_NOTHING;
 	return ACCELERATE;
     }
-    if (diff < 3 && determinant < 0.3f && determinant > -0.3f)
+    if (diff < 5 && determinant < 0.3f && determinant > -0.3f)
     {
 	if (determinant <= 0)
 	    return ACCELERATE_AND_TURN_RIGHT;
@@ -129,14 +127,14 @@ double speed_according_to_angle(struct car *car)
 {
     double next_determinant = 
 	fabs(get_determinant(&list_cp->data[pos+1],car,list_cp->data[pos]));
-    return 0; 
-    if (next_determinant < 0.03f)
-	return 0.3f;
+    //return 0; 
     if (next_determinant < 0.05f)
-	return 0.15f;
+	return 0.35f;
     if (next_determinant < 0.1f)
-	return 0.1f;
+	return 0.25f;
     if (next_determinant < 0.2f)
+	return 0.15f;
+    if (next_determinant < 0.4f)
 	return 0.05f;
     return 0;
 }
@@ -183,11 +181,15 @@ enum move go_to_cp(struct car *car)
 	if (approx < 0.25f)
 	    approx = 0.25f;
 	struct vector2 *pos_stop = brake_to_speed(car, speed);
-	if (pos_stop->x >= list_cp->data[pos].x - approx 
+	double stop_distance = sqrt(square(pos_stop->x - car->position.x) + square(pos_stop->y - car->position.y));
+	double car_distance = sqrt(square(list_cp->data[pos].x - car->position.x) + square(list_cp->data[pos].y - car->position.y));
+
+	if ((car_distance > (stop_distance - approx) && car_distance < (stop_distance + approx))
+		|| (pos_stop->x >= list_cp->data[pos].x - approx 
 		&& pos_stop->x <= list_cp->data[pos].x + approx
 		&& pos_stop->y >= list_cp->data[pos].y - approx 
 		&& pos_stop->y <= list_cp->data[pos].y + approx
-		&& pos < list_cp->size)
+		&& pos < list_cp->size))
 	{
 	    if (fabs(fmax(car->speed.x,car->speed.y)) <= speed)
 	    {	
