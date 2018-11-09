@@ -99,7 +99,7 @@ static void find_finish()
                 finish = malloc(sizeof(struct vector2));
                 finish->y = i;
                 finish->x = j;
-                break;
+                return;
             }
          }
     }
@@ -243,8 +243,8 @@ void ComputeCost(int old_y, int old_x, int y, int x)
 }
 
 /*Builds path vector in correct order
-  doesn't include starting coords because they could be float but path vect
-  only has rounded numbers*/
+**doesn't include starting coords because they could be float but path vect
+**only has rounded numbers*/
 static void get_path(struct vector *path, int row, int col)
 {
     int row_tmp;
@@ -263,7 +263,7 @@ static void get_path(struct vector *path, int row, int col)
     }
 }
 /*explore point mat_point[row][col] next to mat_point[row_static][col_static]
-  and finds end or modifies f, g, h values if needed*/
+**and finds end or modifies f, g, h values if needed*/
 static void explore(struct vector *path, int row, int col, struct vector *open)
 {
     if(goal)
@@ -390,88 +390,6 @@ static void get_real_map(struct map *map)
 
     }
 }
-static char floor_to_char(int y, int x, struct map *map)
-{
-    switch (map_get_floor(map, x, y))
-    {
-        case ROAD:
-            return 'r';
-        case GRASS:
-            return 'g';
-        case BLOCK:
-            return 'b';
-        case FINISH:
-            return 'f';
-    }
-    return 0;
-}
-
-static char **create_matrix(struct vector *path, struct map *map)
-{
-    char **mat = malloc(map->height * sizeof(char *));
-    for(int i = 0; i < map->height; ++i)
-    {
-        mat[i] = malloc(map->width * sizeof(char));
-    }
-    for(int i = 0; i < map->height; ++i)
-    {
-        for(int j = 0; j < map->width; ++j)
-        {
-            mat[i][j] = floor_to_char(i, j, map);
-        }
-    }
-    for(size_t i = 0; i < path->size; ++i)
-    {
-        mat[(int)path->data[i].y][(int)path->data[i].x] += ('A' - 'a');
-    }
-    return mat;
-}
-
-static void free_mat(char **mat, int height)
-{
-    for(int i = 0; i < height; ++i)
-    {
-        free(mat[i]);
-    }
-    free(mat);
-}
-
-static void print_cell(char c)
-{
-    if(c < 'a')
-    {
-        printf("%s%c%s", KRED, c, KWHT);
-    }
-    switch (c)
-    {
-        case 'r':
-            printf("%s%c", KWHT, c);
-            break;
-        case 'g':
-            printf("%s%c%s", KGRN, c, KWHT);
-            break;
-        case 'b':
-            printf("%s%c%s", KBLU, c, KWHT);
-            break;
-        case 'f':
-            printf("%s%c%s", KYEL, c, KWHT);
-            break;
-    }
-}
-
-static void print_map(struct vector *path, struct map *map)
-{
-    char **mat = create_matrix(path, map);
-    for(int i = 0; i < map->height; ++i)
-    {
-        for(int j = 0; j < map->width; ++j)
-        {
-            print_cell(mat[i][j]);
-        }
-        printf("\n");
-    }
-    free_mat(mat, map->height);
-}
 
 struct vector2 get_start(struct map *map)
 {
@@ -484,29 +402,19 @@ struct vector2 get_start(struct map *map)
 // A* path finding algorithm on map
 struct vector *find_path(struct map *map)
 {
-    get_real_map(map); //initialize static map_width and map_height
+    get_real_map(map); //scales map
     struct vector2 start = get_start(map);
     struct vector *path = vector_init(8);
-    
     find_finish(); //set static vector2 finish variable;
-    //if initial conditions don't make sense
-    if(!finish || blocked_vec(start) || arrived_vec(start))
+    if(!finish || blocked_vec(start) || arrived_vec(start)) //initial incorrect
         goto fail_init; //frees memory and returns NULL(path didn't change);
-
-    init_static(); //initializing mat_point, closed and open static variables
-
+    init_static(); //initializing mat_point, closed etc. static variables
     row_static = (int)start.y, col_static = (int)start.x;
-    //parent=self h=f=g=0
     init_point(&mat_point[row_static][col_static], row_static, col_static);
-
-    //add start point to soon to be opened points
     struct vector *open = vector_append(NULL, make_vec2(row_static, col_static));
-
     while(open->size) //something to be opened
     {
-        
-        //FIXME: open smallest one with smallest f in mat_point
-        //instead of first one
+        //FIXME: open smallest one with smallest f in mat_point, not first one
         struct vector2 cur = open->data[0]; //first element of vect
         open = vector_remove(open, 0); //removing it
         row_static = cur.y, col_static = cur.x; //updating static coordinates
@@ -515,10 +423,7 @@ struct vector *find_path(struct map *map)
         if(goal)
             break;
     }
-    print_map(path, map);
-
 fail_init: //free allocated stuff and return the path(NULL if not found)
     free_all(open);
-    vector_print(path);
     return path;
 }
